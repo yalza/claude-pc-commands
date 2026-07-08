@@ -1,23 +1,23 @@
-# pc-tools — marketplace cho lệnh `/pc` + `/pcq`
+# pc-tools — marketplace for the `/pc` + `/pcq` commands
 
-Marketplace Claude Code chứa plugin **`pc-commands`** với 2 slash command giúp Claude phối hợp với **Codex** (OpenAI): Claude lên plan + điều phối + verify, Codex làm phần code nặng.
+A Claude Code marketplace hosting the **`pc-commands`** plugin: two slash commands that let Claude team up with **Codex** (OpenAI). Claude plans, orchestrates, and verifies; Codex does the heavy code work (on your OpenAI quota).
 
-- **`/pc <task>`** — đầy đủ: plan → Codex review chéo → duyệt → Codex thực thi → Claude verify + làm bù khi Codex fail. Cho task lớn/rủi ro.
-- **`/pcq <task>`** — rút gọn: plan ngắn → duyệt nhanh → giao Codex (bỏ review chéo) → verify tối thiểu. Cho task nhẹ.
+- **`/pc <task>`** — full flow: plan → Codex cross-reviews the plan → approve → Codex executes → Claude verifies + fills in whatever Codex can't do. For larger / riskier tasks.
+- **`/pcq <task>`** — quick flow: short plan → fast approval → hand to Codex (no cross-review) → minimal verify. For light tasks.
 
-## Cấu trúc
+## Layout
 ```
-.claude-plugin/marketplace.json         ← manifest marketplace
+.claude-plugin/marketplace.json         ← marketplace manifest
 plugins/pc-commands/
-├── .claude-plugin/plugin.json          ← manifest plugin
-└── commands/{pc.md, pcq.md}            ← 2 slash command
+├── .claude-plugin/plugin.json          ← plugin manifest
+└── commands/{pc.md, pcq.md}            ← the two slash commands
 ```
 
 ---
 
-## Bước 1 — Publish marketplace (làm 1 lần)
+## Step 1 — Publish the marketplace (one-time)
 
-Đưa thư mục này lên một GitHub repo (đổi `yalza/claude-pc-commands` thành repo của bạn):
+Push this folder to a GitHub repo (replace `yalza/claude-pc-commands` with your own):
 
 ```bash
 cd claude-pc-commands
@@ -29,27 +29,27 @@ git remote add origin https://github.com/yalza/claude-pc-commands.git
 git push -u origin main
 ```
 
-> Nếu đổi owner/repo, sửa luôn field `owner.name` trong `.claude-plugin/marketplace.json` và `plugins/pc-commands/.claude-plugin/plugin.json` cho khớp.
+> If you change the owner/repo, also update `owner.name` in `.claude-plugin/marketplace.json` and `plugins/pc-commands/.claude-plugin/plugin.json` to match.
 
-## Bước 2 — Cài trên bất kỳ máy nào
+## Step 2 — Install on any machine
 
-Trong Claude Code:
+In Claude Code:
 ```
 /plugin marketplace add yalza/claude-pc-commands
 /plugin install pc-commands@pc-tools
 /reload-plugins
 ```
-Gõ `/pc` hoặc `/pcq` để kiểm tra đã có.
+Type `/pc` or `/pcq` to confirm they loaded.
 
-## Bước 3 — Dependency (BẮT BUỘC, không tự kéo theo)
+## Step 3 — Dependencies (REQUIRED — not pulled in automatically)
 
-2 lệnh gọi tới Codex nên máy đó cần:
+Both commands call out to Codex, so that machine needs:
 ```bash
-# Node.js sẵn có, rồi:
+# Node.js must be installed, then:
 npm install -g @openai/codex
 codex login
 ```
-Và **plugin Codex** (cung cấp subagent `codex:codex-rescue`):
+And the **Codex plugin** (provides the `codex:codex-rescue` subagent):
 ```
 /plugin marketplace add openai/codex-plugin-cc
 /plugin install codex@openai-codex
@@ -58,11 +58,12 @@ Và **plugin Codex** (cung cấp subagent `codex:codex-rescue`):
 
 ---
 
-## Cập nhật về sau
-Sửa command → bump `version` trong 2 file manifest → `git push`. Máy khác chạy `/plugin marketplace update pc-tools` (hoặc reinstall) để lấy bản mới.
+## Updating later
+Edit a command → bump `version` in both manifests → `git push`. On other machines run `/plugin marketplace update pc-tools` (or reinstall) to pull the new version.
 
-## Ghi chú
-- **Unity (tùy chọn):** phần Unity/verify dùng UnityMCP; dự án non-Unity thì tự bỏ qua.
-- Codex **không mutate được Unity** qua companion → phần Unity **fallback về Claude** (chủ ý, an toàn).
-- `/pcq` vẫn giữ **một cổng duyệt nhanh** trước khi Codex sửa file.
-- Repo public → nội dung lệnh công khai (không nhạy cảm).
+## Notes
+- **Unity (optional):** the Unity/verify steps use UnityMCP; on non-Unity projects those parts are simply skipped.
+- Codex **cannot mutate Unity** through the companion (its MCP tool calls are auto-rejected in headless mode), so Unity work **falls back to Claude** by design (safe).
+- `/pcq` still keeps **one quick approval gate** before Codex touches any file.
+- Heavy Unity MCP reads (large `get_hierarchy`, component dumps, long console) should be delegated to a subagent that returns a summary, to avoid bloating Claude's context.
+- A public repo means the command contents are world-readable (nothing sensitive here).
