@@ -10,12 +10,12 @@ $ARGUMENTS
 
 Nếu phần task ở trên trống, hãy hỏi user cần làm gì rồi mới bắt đầu.
 
-**Nguyên tắc token:** đọc/quét Unity qua MCP mà output LỚN (`get_hierarchy`, dump components, `read_console` dài, quét prefab/scene) → giao **subagent** chạy và trả tóm tắt; KHÔNG gọi trực tiếp để tránh nuốt JSON to.
+**Nguyên tắc token:** đọc/quét Unity qua MCP mà output LỚN (`get_hierarchy`, dump components, `read_console` dài, quét prefab/scene) → giao **subagent** chạy và trả tóm tắt; KHÔNG gọi trực tiếp để tránh nuốt JSON to. Subagent chỉ đọc/tóm tắt/verify → chạy **model rẻ** (`model: "haiku"` khi gọi Agent tool).
 
 Các bước:
 
 ## 1. Lên plan NGẮN
-- Tìm hiểu vừa đủ (ưu tiên nhanh; đọc Unity nặng thì qua subagent). Soạn plan **1 đoạn gọn**: mục tiêu + file/chỗ sẽ sửa.
+- Tìm hiểu vừa đủ (ưu tiên nhanh). Cần QUÉT/ĐỌC NHIỀU code hoặc Unity nặng → giao **Explore subagent (`model: "haiku"`)** trả tóm tắt (file liên quan + hàm tái dùng + kết luận); chỉ đọc trực tiếp khi 1–2 file nhỏ đã biết vị trí. Soạn plan **1 đoạn gọn**: mục tiêu + file/chỗ sẽ sửa.
 
 ## 2. Cổng duyệt nhanh (BẮT BUỘC)
 - Dùng `AskUserQuestion` đúng MỘT lần, trình plan ngắn, 2 lựa chọn: `Giao Codex` / `Sửa plan`.
@@ -23,10 +23,11 @@ Các bước:
 
 ## 3. Giao Codex (sau khi duyệt)
 - Gọi subagent `codex:codex-rescue` (--write) với plan vừa duyệt. KHÔNG review chéo.
+- YÊU CẦU ĐỊNH DẠNG OUTPUT (tiết kiệm token): "Kết thúc bằng bảng NGẮN: file đã sửa / phần fail (nếu có) / compile status. KHÔNG dán lại toàn bộ diff hay nội dung file."
 - Codex làm phần code C#/logic (+ Unity qua MCP nếu được). Phần Unity nào Codex fail → Claude làm bù qua UnityMCP (đọc nặng vẫn qua subagent).
 
 ## 4. Verify tối thiểu & báo cáo gọn
-- Kiểm compile (`read_console` = 0 lỗi). Nếu task đụng hành vi rõ ràng và rẻ để kiểm thì kiểm nhanh; không thì nêu rõ phần user nên tự test.
+- Kiểm compile (`read_console` = 0 lỗi). Phần đọc Unity nặng → **subagent (`model: "haiku"`)** trả gọn `pass/fail + bằng chứng`. Nếu task đụng hành vi rõ ràng và rẻ để kiểm thì kiểm nhanh; không thì nêu rõ phần user nên tự test.
 - Báo cáo ngắn: đã làm gì, ai làm (Codex/Claude), compile ok chưa.
 
 ## Khi nào KHÔNG dùng /pcq

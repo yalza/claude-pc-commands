@@ -12,15 +12,19 @@ Nếu phần task ở trên trống, hãy hỏi user cần làm gì rồi mới 
 
 **Nguyên tắc token (áp cho MỌI bước):** khi cần ĐỌC/QUÉT trạng thái Unity qua MCP mà output LỚN (`get_hierarchy`, dump components, `read_console` dài, quét prefab/scene) → giao một **subagent** (general-purpose/Explore) chạy các tool UnityMCP đó và **chỉ trả về tóm tắt** (id/giá trị/kết luận cần dùng). KHÔNG gọi trực tiếp để tránh nuốt JSON to vào context Claude. Thao tác nhỏ (1–2 giá trị) hoặc mutate lẻ thì gọi trực tiếp cho nhanh.
 
+**Model cho subagent tóm tắt:** các subagent chỉ làm việc đọc/quét/tóm tắt/verify (không cần suy luận sâu) hãy chạy **model rẻ** — gọi Agent tool với `model: "haiku"` — để tiết kiệm chi phí. Chỉ dùng model mặc định khi subagent cần suy luận/quyết định phức tạp.
+
 Thực hiện TUẦN TỰ các bước, KHÔNG được bỏ bước:
 
 ## 1. Nghiên cứu & lên plan
-- Đọc code/context liên quan (Read/Grep/Glob, UnityMCP nếu cần) đủ để plan chính xác. Ưu tiên tái dùng hàm/pattern có sẵn.
+- Khi cần QUÉT/ĐỌC NHIỀU code để plan → giao một **Explore subagent (`model: "haiku"`)**, yêu cầu chỉ trả về: file liên quan + hàm/pattern **tái dùng được** + kết luận đủ để plan. KHÔNG `Read` full file vào context Claude.
+- Chỉ đọc trực tiếp ở main khi là 1–2 file nhỏ đã biết chính xác vị trí. Ưu tiên tái dùng hàm/pattern có sẵn.
 - Soạn một plan ngắn gọn nhưng đủ để thực thi: mục tiêu, file sẽ sửa, cách chia việc **Codex (code C#/logic)** vs **Claude (prefab/scene/material + verify qua UnityMCP)**, và cách verify cuối.
 
 ## 2. Codex review plan (READ-ONLY, không sửa file)
 - Gọi subagent `codex:codex-rescue` (Agent tool, `subagent_type: "codex:codex-rescue"`), foreground.
-- Prompt cho Codex = toàn văn plan vừa soạn + yêu cầu: **CHỈ REVIEW, KHÔNG SỬA FILE, KHÔNG --write**. Tìm: lỗ hổng logic, edge case bị bỏ sót, giả định sai, rủi ro, thiếu bước verify. Trả feedback cụ thể theo từng điểm.
+- Prompt cho Codex = toàn văn plan vừa soạn + yêu cầu: **CHỈ REVIEW, KHÔNG SỬA FILE, KHÔNG --write**. Tìm: lỗ hổng logic, edge case bị bỏ sót, giả định sai, rủi ro, thiếu bước verify.
+- YÊU CẦU ĐỊNH DẠNG (tiết kiệm token): "Trả về CHỈ bullet `[vấn đề] — [mức độ] — [đề xuất]`. KHÔNG lặp lại plan, KHÔNG giải thích dài dòng."
 - Nhận nguyên văn feedback của Codex.
 
 ## 3. Claude verify & chỉnh plan (1 lượt)
@@ -37,13 +41,14 @@ Thực hiện TUẦN TỰ các bước, KHÔNG được bỏ bước:
 ## 5. Giao Codex thực thi TOÀN BỘ (khi chọn "Duyệt & giao Codex")
 - Gọi subagent `codex:codex-rescue`, prompt = plan đã chốt, chạy **--write** (mặc định của rescue là write).
 - Codex thực thi CẢ phần code C#/logic LẪN phần Unity (prefab/scene/material, kiểm compile) **bằng chính unityMCP của Codex** — Codex CLI đã cấu hình `unityMCP` (endpoint `127.0.0.1:8080` sống). Nêu RÕ trong prompt: dùng unityMCP để thao tác Unity, và **liệt kê ở CUỐI phần nào KHÔNG hoàn tất được** (đặc biệt nếu không gọi được MCP).
+- YÊU CẦU ĐỊNH DẠNG OUTPUT (tiết kiệm token): "Kết thúc bằng bảng NGẮN: file đã sửa / phần fail (nếu có) / compile status. KHÔNG dán lại toàn bộ diff hay nội dung file."
 
 ## 6. Fallback Claude (CHỈ khi Codex fail)
 - Đọc kết quả Codex. Phần nào Codex **fail** — không gọi được unityMCP / báo không làm được / lỗi / bỏ trống — thì Claude làm bù ĐÚNG phần đó qua UnityMCP.
 - Nếu Codex đã hoàn tất hết → Claude KHÔNG làm lại, sang thẳng bước verify.
 
 ## 7. Claude verify độc lập & báo cáo
-- Claude LUÔN tự verify bất kể ai thực thi: kiểm compile (`read_console` = 0 lỗi), wiring, test hành vi (Play mode qua UnityMCP nếu khả thi). Phần đọc Unity nặng → qua subagent (Nguyên tắc token).
+- Claude LUÔN tự verify bất kể ai thực thi: kiểm compile (`read_console` = 0 lỗi), wiring, test hành vi (Play mode qua UnityMCP nếu khả thi). Phần đọc Unity nặng → qua **subagent (`model: "haiku"`)** trả về gọn `pass/fail + bằng chứng` (Nguyên tắc token).
 - Báo cáo TRUNG THỰC: phần nào **Codex** làm, phần nào **Claude fallback**, đã verify gì (kèm bằng chứng), phần nào user cần tự test.
 
 ## Nhánh khác
