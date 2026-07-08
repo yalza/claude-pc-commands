@@ -59,7 +59,14 @@ And the **Codex plugin** (provides the `codex:codex-rescue` subagent):
 ---
 
 ## Updating later
-Edit a command → bump `version` in both manifests → `git push`. On other machines run `/plugin marketplace update pc-tools` (or reinstall) to pull the new version.
+Current version: **0.2.0**.
+
+Edit a command → bump `version` in **all three fields** → `git push`. On other machines run `/plugin marketplace update pc-tools` (then `/reload-plugins`) to pull the new version.
+
+The three `version` fields to keep in sync:
+- `.claude-plugin/marketplace.json` → `metadata.version`
+- `.claude-plugin/marketplace.json` → `plugins[0].version`
+- `plugins/pc-commands/.claude-plugin/plugin.json` → `version`
 
 ## Notes
 - **Unity (optional):** the Unity/verify steps use UnityMCP; on non-Unity projects those parts are simply skipped.
