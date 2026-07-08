@@ -1,0 +1,21 @@
+{
+  "name": "pc-tools",
+  "owner": {
+    "name": "yalza"
+  },
+  "metadata": {
+    "description": "Slash commands /pc and /pcq: Claude plans + orchestrates, Codex executes.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "pc-commands",
+      "description": "/pc (plan -> Codex review -> execute -> verify) and /pcq (quick: plan -> approve -> Codex -> verify).",
+      "version": "0.1.0",
+      "author": {
+        "name": "yalza"
+      },
+      "source": "./plugins/pc-commands"
+    }
+  ]
+}
