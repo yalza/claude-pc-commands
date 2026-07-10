@@ -12,6 +12,8 @@ Nếu phần task ở trên trống, hãy hỏi user cần làm gì rồi mới 
 
 **Nguyên tắc token:** đọc/quét Unity qua MCP mà output LỚN (`get_hierarchy`, dump components, `read_console` dài, quét prefab/scene) → giao **subagent** chạy và trả tóm tắt; KHÔNG gọi trực tiếp để tránh nuốt JSON to. Subagent chỉ đọc/tóm tắt/verify → chạy **model rẻ** (`model: "haiku"` khi gọi Agent tool).
 
+**Cấu hình Codex:** trước khi gọi `codex:codex-rescue`, đọc `~/.claude/pc-codex.json` (Windows: `%USERPROFILE%\.claude\pc-codex.json`). Có `model`/`effort` → nối `--model <x>` / `--effort <y>` vào cuối prompt gửi subagent. Không có file / JSON hỏng → bỏ qua, KHÔNG báo lỗi. Nêu 1 dòng cho user biết đang dùng model + effort nào. Đổi cấu hình bằng `/pcset`.
+
 Các bước:
 
 ## 1. Lên plan NGẮN
@@ -22,7 +24,7 @@ Các bước:
 - KHÔNG cho Codex sửa file trước khi user chọn `Giao Codex`. Chọn `Sửa plan` → chỉnh theo góp ý rồi hỏi lại.
 
 ## 3. Giao Codex (sau khi duyệt)
-- Gọi subagent `codex:codex-rescue` (--write) với plan vừa duyệt. KHÔNG review chéo.
+- Gọi subagent `codex:codex-rescue` (--write) với plan vừa duyệt. KHÔNG review chéo. Kèm `--model`/`--effort` theo **Cấu hình Codex** ở trên.
 - YÊU CẦU ĐỊNH DẠNG OUTPUT (tiết kiệm token): "Kết thúc bằng bảng NGẮN: file đã sửa / phần fail (nếu có) / compile status. KHÔNG dán lại toàn bộ diff hay nội dung file."
 - Codex làm phần code C#/logic (+ Unity qua MCP nếu được). Phần Unity nào Codex fail → Claude làm bù qua UnityMCP (đọc nặng vẫn qua subagent).
 

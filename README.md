@@ -1,16 +1,17 @@
-# pc-tools — marketplace for the `/pc` + `/pcq` commands
+# pc-tools — marketplace for the `/pc` + `/pcq` + `/pcset` commands
 
-A Claude Code marketplace hosting the **`pc-commands`** plugin: two slash commands that let Claude team up with **Codex** (OpenAI). Claude plans, orchestrates, and verifies; Codex does the heavy code work (on your OpenAI quota).
+A Claude Code marketplace hosting the **`pc-commands`** plugin: slash commands that let Claude team up with **Codex** (OpenAI). Claude plans, orchestrates, and verifies; Codex does the heavy code work (on your OpenAI quota).
 
 - **`/pc <task>`** — full flow: plan → Codex cross-reviews the plan → approve → Codex executes → Claude verifies + fills in whatever Codex can't do. For larger / riskier tasks.
 - **`/pcq <task>`** — quick flow: short plan → fast approval → hand to Codex (no cross-review) → minimal verify. For light tasks.
+- **`/pcset [model] [effort]`** — set the model + reasoning effort that `/pc` and `/pcq` hand to Codex. Persists across sessions.
 
 ## Layout
 ```
-.claude-plugin/marketplace.json         ← marketplace manifest
+.claude-plugin/marketplace.json              ← marketplace manifest
 plugins/pc-commands/
-├── .claude-plugin/plugin.json          ← plugin manifest
-└── commands/{pc.md, pcq.md}            ← the two slash commands
+├── .claude-plugin/plugin.json               ← plugin manifest
+└── commands/{pc.md, pcq.md, pcset.md}       ← the slash commands
 ```
 
 ---
@@ -58,8 +59,30 @@ And the **Codex plugin** (provides the `codex:codex-rescue` subagent):
 
 ---
 
+## Codex model + effort (`/pcset`)
+
+`/pc` and `/pcq` read `~/.claude/pc-codex.json` before every Codex handoff and forward `--model` / `--effort` to `codex:codex-rescue`. Missing file or missing field → that flag is skipped and Codex falls back to its own default.
+
+```bash
+/pcset                      # interactive menu: pick model, then effort
+/pcset show                 # print current config
+/pcset gpt-5.4-mini high    # set both, no menu
+/pcset low                  # set effort only; model is kept
+/pcset spark                # alias → gpt-5.3-codex-spark
+/pcset reset                # back to Codex defaults
+```
+
+Config shape (`~/.claude/pc-codex.json`, on Windows `%USERPROFILE%\.claude\pc-codex.json`):
+```json
+{ "model": "gpt-5.4-mini", "effort": "high" }
+```
+
+- **`effort`** must be one of `none` `minimal` `low` `medium` `high` `xhigh` — `/pcset` rejects anything else. Note that `ultra`, valid in `~/.codex/config.toml`, is **not** a valid `--effort` value.
+- **`model`** is *not* validated: any string is accepted and a typo only surfaces when Codex actually runs.
+- The menu offers `gpt-5.6-sol`, `gpt-5.4-mini`, `spark` and "Codex default"; pick **Other** to type any other model.
+
 ## Updating later
-Current version: **0.2.0**.
+Current version: **0.3.0**.
 
 Edit a command → bump `version` in **all three fields** → `git push`. On other machines run `/plugin marketplace update pc-tools` (then `/reload-plugins`) to pull the new version.
 

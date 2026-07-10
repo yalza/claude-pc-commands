@@ -14,6 +14,12 @@ Nếu phần task ở trên trống, hãy hỏi user cần làm gì rồi mới 
 
 **Model cho subagent tóm tắt:** các subagent chỉ làm việc đọc/quét/tóm tắt/verify (không cần suy luận sâu) hãy chạy **model rẻ** — gọi Agent tool với `model: "haiku"` — để tiết kiệm chi phí. Chỉ dùng model mặc định khi subagent cần suy luận/quyết định phức tạp.
 
+**Cấu hình Codex (áp cho MỌI lần gọi `codex:codex-rescue`):** trước khi gọi, đọc `~/.claude/pc-codex.json` (Windows: `%USERPROFILE%\.claude\pc-codex.json`).
+- Có `model` → nối `--model <giá trị>` vào cuối prompt gửi subagent. Có `effort` → nối `--effort <giá trị>`.
+- File không tồn tại / JSON hỏng / field rỗng → BỎ QUA, không báo lỗi (Codex dùng mặc định của nó).
+- Nêu 1 dòng cho user biết đang chạy Codex với model + effort nào (hoặc "mặc định Codex").
+- User đổi cấu hình này bằng lệnh `/pcset`.
+
 Thực hiện TUẦN TỰ các bước, KHÔNG được bỏ bước:
 
 ## 1. Nghiên cứu & lên plan
@@ -22,7 +28,7 @@ Thực hiện TUẦN TỰ các bước, KHÔNG được bỏ bước:
 - Soạn một plan ngắn gọn nhưng đủ để thực thi: mục tiêu, file sẽ sửa, cách chia việc **Codex (code C#/logic)** vs **Claude (prefab/scene/material + verify qua UnityMCP)**, và cách verify cuối.
 
 ## 2. Codex review plan (READ-ONLY, không sửa file)
-- Gọi subagent `codex:codex-rescue` (Agent tool, `subagent_type: "codex:codex-rescue"`), foreground.
+- Gọi subagent `codex:codex-rescue` (Agent tool, `subagent_type: "codex:codex-rescue"`), foreground. Kèm `--model`/`--effort` theo **Cấu hình Codex** ở trên.
 - Prompt cho Codex = toàn văn plan vừa soạn + yêu cầu: **CHỈ REVIEW, KHÔNG SỬA FILE, KHÔNG --write**. Tìm: lỗ hổng logic, edge case bị bỏ sót, giả định sai, rủi ro, thiếu bước verify.
 - YÊU CẦU ĐỊNH DẠNG (tiết kiệm token): "Trả về CHỈ bullet `[vấn đề] — [mức độ] — [đề xuất]`. KHÔNG lặp lại plan, KHÔNG giải thích dài dòng."
 - Nhận nguyên văn feedback của Codex.
@@ -39,7 +45,7 @@ Thực hiện TUẦN TỰ các bước, KHÔNG được bỏ bước:
 - TUYỆT ĐỐI không sửa code sản phẩm trước khi được duyệt.
 
 ## 5. Giao Codex thực thi TOÀN BỘ (khi chọn "Duyệt & giao Codex")
-- Gọi subagent `codex:codex-rescue`, prompt = plan đã chốt, chạy **--write** (mặc định của rescue là write).
+- Gọi subagent `codex:codex-rescue`, prompt = plan đã chốt, chạy **--write** (mặc định của rescue là write). Kèm `--model`/`--effort` theo **Cấu hình Codex** ở trên.
 - Codex thực thi CẢ phần code C#/logic LẪN phần Unity (prefab/scene/material, kiểm compile) **bằng chính unityMCP của Codex** — Codex CLI đã cấu hình `unityMCP` (endpoint `127.0.0.1:8080` sống). Nêu RÕ trong prompt: dùng unityMCP để thao tác Unity, và **liệt kê ở CUỐI phần nào KHÔNG hoàn tất được** (đặc biệt nếu không gọi được MCP).
 - YÊU CẦU ĐỊNH DẠNG OUTPUT (tiết kiệm token): "Kết thúc bằng bảng NGẮN: file đã sửa / phần fail (nếu có) / compile status. KHÔNG dán lại toàn bộ diff hay nội dung file."
 

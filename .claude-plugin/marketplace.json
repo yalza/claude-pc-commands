@@ -4,14 +4,14 @@
     "name": "yalza"
   },
   "metadata": {
-    "description": "Slash commands /pc and /pcq: Claude plans + orchestrates, Codex executes.",
-    "version": "0.2.0"
+    "description": "Slash commands /pc, /pcq and /pcset: Claude plans + orchestrates, Codex executes.",
+    "version": "0.3.0"
   },
   "plugins": [
     {
       "name": "pc-commands",
-      "description": "/pc (plan -> Codex review -> execute -> verify) and /pcq (quick: plan -> approve -> Codex -> verify).",
-      "version": "0.2.0",
+      "description": "/pc (plan -> Codex review -> execute -> verify), /pcq (quick: plan -> approve -> Codex -> verify), /pcset (set Codex model + effort).",
+      "version": "0.3.0",
       "author": {
         "name": "yalza"
       },
