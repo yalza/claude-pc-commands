@@ -19,7 +19,7 @@
     },
     {
       "name": "task-grid",
-      "description": "/task-grid:open - open up to 4 git-worktree task panes, each running claude, in one Windows Terminal grid (Windows only).",
+      "description": "/grid 2x3 - open git-worktree task panes, each running claude, in one Windows Terminal grid of any size (Windows only).",
       "author": {
         "name": "yalza"
       },

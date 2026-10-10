@@ -6,7 +6,7 @@ A Claude Code marketplace hosting the **`pc-commands`** plugin: slash commands t
 - **`/pcq <task>`** — quick flow: short plan → fast approval → hand to Codex (no cross-review) → minimal verify. For light tasks.
 - **`/pcset [model] [effort]`** — set the model + reasoning effort that `/pc` and `/pcq` hand to Codex. Persists across sessions.
 
-The marketplace also lists **`task-grid`**: `/task-grid:open <task>...` opens up to 4 parallel tasks in one Windows Terminal window, split as a grid, each in its own git worktree running `claude`. See [task-grid](#task-grid) below.
+The marketplace also lists **`task-grid`**: `/grid 2x3` opens parallel tasks in one Windows Terminal window, split as a grid of any size, each in its own git worktree running `claude`. See [task-grid](#task-grid) below.
 
 ## Layout
 ```
@@ -110,30 +110,31 @@ Run several tasks in parallel without them overwriting each other's files: each 
 ### Use
 Open Claude Code in the repo you work on, then:
 ```
-/task-grid:open guard-ai fence-ui fix/noise .
+/grid 2x3
 ```
-That opens a new window with 4 panes (2×2):
+That opens a new, maximized window split into 2 rows × 3 columns: 6 panes `t1`…`t6`, each in its own worktree and branch, each running `claude`. (`/grid` is the short name; if another plugin also has a `grid` skill, use `/task-grid:grid`.)
 
-| Pane | Folder | Branch |
-| --- | --- | --- |
-| `guard-ai` (top-left) | `<repo>-worktrees\guard-ai` | `feat/guard-ai` (new, from `origin/main`) |
-| `fence-ui` (top-right) | `<repo>-worktrees\fence-ui` | `feat/fence-ui` |
-| `fix/noise` (bottom-left) | `<repo>-worktrees\fix-noise` | `fix/noise` (name with `/` is used as-is) |
-| `.` (bottom-right) | the main checkout | whatever is checked out there |
-
-`<repo>-worktrees` is a folder next to your repo, e.g. `E:\Work\MyGame-worktrees\` for `E:\Work\MyGame`.
+| Command | Result |
+| --- | --- |
+| `/grid 2x3` | 2 rows × 3 columns, panes `t1`…`t6` |
+| `/grid 4` | 4 panes `t1`…`t4`, laid out 2×2 automatically |
+| `/grid 2x3 guard-ai fence-ui` | 2×3 grid: panes 1–2 are `guard-ai`, `fence-ui`; panes 3–6 are `t1`…`t4` |
+| `/grid guard-ai fence-ui fix/noise .` | 4 tasks, auto 2×2; the last pane is the main checkout |
 
 | Argument | Meaning |
 | --- | --- |
-| `<task>` | 1–4 task names. Plain name → branch `feat/<name>`; name with `/` → used as the branch name |
+| `RxC` | grid size, **rows × columns** (`2x3` = 2 rows, 3 columns). Unnamed panes get `t1`, `t2`, … |
+| `N` | pane count; the grid is picked for you (3 → 2×2 with one empty slot, 5 or 6 → 2×3, 9 → 3×3) |
+| `<task>` | worktree `<repo>-worktrees\<task>` on branch `feat/<task>` |
+| `fix/noise` | a name with `/` is used as-is as the branch name (folder `fix-noise`) |
 | `.` | a pane in the main checkout (no worktree) |
 | `-Base <ref>` | where new branches start (default `origin/main`, fetched first) |
 | `-Command "<cmd>"` | what each pane runs (default `claude`), e.g. `-Command "claude --continue"` |
 | `-Repo <path>` | target repo (default: current directory) |
 
-Layout: 1 task = full window, 2 = left | right, 3 = two on top + one bottom-left, 4 = 2×2.
+Panes fill in reading order: left to right, then top to bottom. `<repo>-worktrees` is a folder next to your repo, e.g. `E:\Work\MyGame-worktrees\` for `E:\Work\MyGame`.
 
-- **Resume:** run the same command again → existing worktrees/branches are reused, nothing is recreated.
+- **Resume:** run the same command again (same names, including `t1`, `t2`, …) → existing worktrees/branches are reused, nothing is recreated.
 - **Safe branches:** new branches are created `--no-track`, so `git pull`/`git push` in a pane never touches `main`.
 - **Clean up** a merged task (close its pane first, Windows locks the folder):
   ```
@@ -145,7 +146,7 @@ Layout: 1 task = full window, 2 = left | right, 3 = two on top + one bottom-left
 ### Without Claude Code
 Clone [yalza/TaskGrid](https://github.com/yalza/TaskGrid), add the folder to your user `PATH`, then from any repo:
 ```
-task-grid guard-ai fence-ui fix/noise .
+grid 2x3
 ```
 
 ## Notes
