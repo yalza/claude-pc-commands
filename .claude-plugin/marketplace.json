@@ -24,8 +24,8 @@
         "name": "yalza"
       },
       "source": {
-        "source": "github",
-        "repo": "yalza/TaskGrid"
+        "source": "url",
+        "url": "https://github.com/yalza/TaskGrid.git"
       }
     }
   ]
