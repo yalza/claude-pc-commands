@@ -6,7 +6,7 @@ A Claude Code marketplace hosting the **`pc-commands`** plugin: slash commands t
 - **`/pcq <task>`** — quick flow: short plan → fast approval → hand to Codex (no cross-review) → minimal verify. For light tasks.
 - **`/pcset [model] [effort]`** — set the model + reasoning effort that `/pc` and `/pcq` hand to Codex. Persists across sessions.
 
-The marketplace also lists **`task-grid`** (source: [yalza/TaskGrid](https://github.com/yalza/TaskGrid)): `/task-grid:open <task>...` opens up to 4 git-worktree task panes, each running `claude`, in one Windows Terminal grid. Install with `/plugin install task-grid@pc-tools`. Windows only.
+The marketplace also lists **`task-grid`**: `/task-grid:open <task>...` opens up to 4 parallel tasks in one Windows Terminal window, split as a grid, each in its own git worktree running `claude`. See [task-grid](#task-grid) below.
 
 ## Layout
 ```
@@ -92,6 +92,61 @@ The three `version` fields to keep in sync:
 - `.claude-plugin/marketplace.json` → `metadata.version`
 - `.claude-plugin/marketplace.json` → `plugins[0].version`
 - `plugins/pc-commands/.claude-plugin/plugin.json` → `version`
+
+## task-grid
+
+Source: [yalza/TaskGrid](https://github.com/yalza/TaskGrid). **Windows only** (needs Windows Terminal, `wt.exe`).
+
+Run several tasks in parallel without them overwriting each other's files: each task gets its own git worktree + branch, and all of them open in **one** Windows Terminal window, split as a grid, each pane already running `claude`.
+
+### Install
+```
+/plugin marketplace add yalza/claude-pc-commands    # skip if pc-tools is already added
+/plugin marketplace update pc-tools
+/plugin install task-grid@pc-tools
+/reload-plugins
+```
+
+### Use
+Open Claude Code in the repo you work on, then:
+```
+/task-grid:open guard-ai fence-ui fix/noise .
+```
+That opens a new window with 4 panes (2×2):
+
+| Pane | Folder | Branch |
+| --- | --- | --- |
+| `guard-ai` (top-left) | `<repo>-worktrees\guard-ai` | `feat/guard-ai` (new, from `origin/main`) |
+| `fence-ui` (top-right) | `<repo>-worktrees\fence-ui` | `feat/fence-ui` |
+| `fix/noise` (bottom-left) | `<repo>-worktrees\fix-noise` | `fix/noise` (name with `/` is used as-is) |
+| `.` (bottom-right) | the main checkout | whatever is checked out there |
+
+`<repo>-worktrees` is a folder next to your repo, e.g. `E:\Work\MyGame-worktrees\` for `E:\Work\MyGame`.
+
+| Argument | Meaning |
+| --- | --- |
+| `<task>` | 1–4 task names. Plain name → branch `feat/<name>`; name with `/` → used as the branch name |
+| `.` | a pane in the main checkout (no worktree) |
+| `-Base <ref>` | where new branches start (default `origin/main`, fetched first) |
+| `-Command "<cmd>"` | what each pane runs (default `claude`), e.g. `-Command "claude --continue"` |
+| `-Repo <path>` | target repo (default: current directory) |
+
+Layout: 1 task = full window, 2 = left | right, 3 = two on top + one bottom-left, 4 = 2×2.
+
+- **Resume:** run the same command again → existing worktrees/branches are reused, nothing is recreated.
+- **Safe branches:** new branches are created `--no-track`, so `git pull`/`git push` in a pane never touches `main`.
+- **Clean up** a merged task (close its pane first, Windows locks the folder):
+  ```
+  git worktree remove <repo>-worktrees\<task>
+  git branch -d <branch>
+  ```
+- **Unity projects:** a worktree has no `Library/` and no Editor open on it. Verify code there with tests that run outside Unity; to check in the Editor, check the branch out in the main checkout. Don't let a worktree session drive Unity MCP — it would act on the main checkout's Editor.
+
+### Without Claude Code
+Clone [yalza/TaskGrid](https://github.com/yalza/TaskGrid), add the folder to your user `PATH`, then from any repo:
+```
+task-grid guard-ai fence-ui fix/noise .
+```
 
 ## Notes
 - **Unity (optional):** the Unity/verify steps use UnityMCP; on non-Unity projects those parts are simply skipped.
