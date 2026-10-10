@@ -6,6 +6,8 @@ A Claude Code marketplace hosting the **`pc-commands`** plugin: slash commands t
 - **`/pcq <task>`** — quick flow: short plan → fast approval → hand to Codex (no cross-review) → minimal verify. For light tasks.
 - **`/pcset [model] [effort]`** — set the model + reasoning effort that `/pc` and `/pcq` hand to Codex. Persists across sessions.
 
+The marketplace also lists **`task-grid`** (source: [yalza/TaskGrid](https://github.com/yalza/TaskGrid)): `/task-grid:open <task>...` opens up to 4 git-worktree task panes, each running `claude`, in one Windows Terminal grid. Install with `/plugin install task-grid@pc-tools`. Windows only.
+
 ## Layout
 ```
 .claude-plugin/marketplace.json              ← marketplace manifest
