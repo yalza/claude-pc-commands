@@ -143,8 +143,24 @@ Panes fill in reading order: left to right, then top to bottom. `<repo>-worktree
   ```
 - **Unity projects:** a worktree has no `Library/` and no Editor open on it. Verify code there with tests that run outside Unity; to check in the Editor, check the branch out in the main checkout. Don't let a worktree session drive Unity MCP — it would act on the main checkout's Editor.
 
+### Team mode (`/grid team`, 1.2.0+)
+Open a whole team of role-based Claude sessions, one pane each, with its own model, effort and rules. You talk to the PM in the first pane. The PM plans, assigns tasks, and stops twice for your approval (the plan, and before any push or merge). Members message each other and share a task board in `<repo>-worktrees\_team\`, outside git.
+
+| Command | Does |
+| --- | --- |
+| `/grid team init -Preset unity-game` | Creates `.claude/team.json`, `.claude/team-rules.md` and missing role files. Presets: `basic` (pm, dev, reviewer), `unity-game` (pm, designer, 2 devs, artist, Unity integrator, reviewer, qa) |
+| `/grid team` | Opens the whole team |
+| `/grid team pm gameplay reviewer` | Opens only these members (the PM always opens; members already running are skipped) |
+| `/grid team -Resume` | Reopens each member's previous session |
+| `/grid team -DryRun` | Generates the team files and prints the plan, without opening anything |
+
+- Edit `.claude/team.json` to change members, models and effort, and commit it with `.claude/agents/` and `.claude/team-rules.md`.
+- The first launch asks "trust this folder" once per new member worktree. A session cannot receive messages until you accept.
+- A member that works in the main checkout (the Unity integrator) needs a clean main checkout. Don't work there while the team runs, and turn off editor tools that touch git (for example an auto-sync).
+- Full design and verification: `docs/specs/` in [yalza/TaskGrid](https://github.com/yalza/TaskGrid).
+
 ### Without Claude Code
-Clone [yalza/TaskGrid](https://github.com/yalza/TaskGrid), add the folder to your user `PATH`, then from any repo:
+Clone [yalza/TaskGrid](https://github.com/yalza/TaskGrid), add the folder to your user `PATH`, then from any repo (`grid team ...` works the same way):
 ```
 grid 2x3
 ```

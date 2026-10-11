@@ -19,7 +19,7 @@
     },
     {
       "name": "task-grid",
-      "description": "/grid 2x3 - open git-worktree task panes, each running claude, in one Windows Terminal grid of any size (Windows only).",
+      "description": "/grid 2x3 - git-worktree task panes running claude in one Windows Terminal grid; /grid team - a role-based Claude team (PM, devs, reviewer, Unity integrator...) that coordinates through messages and a task board (Windows only).",
       "author": {
         "name": "yalza"
       },
