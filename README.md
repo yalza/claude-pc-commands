@@ -84,7 +84,7 @@ Config shape (`~/.claude/pc-codex.json`, on Windows `%USERPROFILE%\.claude\pc-co
 - The menu offers `gpt-5.6-sol`, `gpt-5.4-mini`, `spark` and "Codex default"; pick **Other** to type any other model.
 
 ## Updating later
-Current version: **0.3.1**.
+Current version: **0.3.2**.
 
 Edit a command → bump `version` in **all three fields** → `git push`. On other machines run `/plugin marketplace update pc-tools` (then `/reload-plugins`) to pull the new version.
 
@@ -168,7 +168,8 @@ grid 2x3
 ## Notes
 - **Unity (optional):** the Unity/verify steps use UnityMCP; on non-Unity projects those parts are simply skipped.
 - In both `/pc` and `/pcq`, failed execution gets up to **5 Codex retries after the initial attempt** (6 attempts total per failed work item). Each retry includes the latest error and prior approaches, preserves completed work, and stops on success. Verification failures use the same remaining retry budget. Claude takes over only the work still failing after all 5 retries.
-- Codex **cannot mutate Unity** through the companion (its MCP tool calls are auto-rejected in headless mode), so unresolved Unity work **falls back to Claude after the retry budget is exhausted**; retries must respect permissions.
+- Both commands use structured handoffs (scope, workspace, acceptance criteria), per-item results with verification evidence, and a Claude-maintained task record at `~/.claude/pc-handoffs/<task_id>.json`. Retry counts survive session changes and switching from `/pcq` to `/pc`.
+- Only one executor may write at a time. A timeout requires confirming the previous run has stopped before retry or fallback. Codex checks its own Unity connection and project before editing; denied or unavailable tools are reported explicitly. Unresolved work falls back to Claude only after all 5 retries; permissions are never bypassed.
 - `/pcq` still keeps **one quick approval gate** before Codex touches any file.
 - Heavy Unity MCP reads (large `get_hierarchy`, component dumps, long console) should be delegated to a subagent that returns a summary, to avoid bloating Claude's context.
 - A public repo means the command contents are world-readable (nothing sensitive here).
