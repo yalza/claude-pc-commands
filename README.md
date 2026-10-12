@@ -84,7 +84,7 @@ Config shape (`~/.claude/pc-codex.json`, on Windows `%USERPROFILE%\.claude\pc-co
 - The menu offers `gpt-5.6-sol`, `gpt-5.4-mini`, `spark` and "Codex default"; pick **Other** to type any other model.
 
 ## Updating later
-Current version: **0.3.0**.
+Current version: **0.3.1**.
 
 Edit a command → bump `version` in **all three fields** → `git push`. On other machines run `/plugin marketplace update pc-tools` (then `/reload-plugins`) to pull the new version.
 
@@ -167,7 +167,8 @@ grid 2x3
 
 ## Notes
 - **Unity (optional):** the Unity/verify steps use UnityMCP; on non-Unity projects those parts are simply skipped.
-- Codex **cannot mutate Unity** through the companion (its MCP tool calls are auto-rejected in headless mode), so Unity work **falls back to Claude** by design (safe).
+- In both `/pc` and `/pcq`, failed execution gets up to **5 Codex retries after the initial attempt** (6 attempts total per failed work item). Each retry includes the latest error and prior approaches, preserves completed work, and stops on success. Verification failures use the same remaining retry budget. Claude takes over only the work still failing after all 5 retries.
+- Codex **cannot mutate Unity** through the companion (its MCP tool calls are auto-rejected in headless mode), so unresolved Unity work **falls back to Claude after the retry budget is exhausted**; retries must respect permissions.
 - `/pcq` still keeps **one quick approval gate** before Codex touches any file.
 - Heavy Unity MCP reads (large `get_hierarchy`, component dumps, long console) should be delegated to a subagent that returns a summary, to avoid bloating Claude's context.
 - A public repo means the command contents are world-readable (nothing sensitive here).

@@ -26,10 +26,14 @@ Các bước:
 ## 3. Giao Codex (sau khi duyệt)
 - Gọi subagent `codex:codex-rescue` (--write) với plan vừa duyệt. KHÔNG review chéo. Kèm `--model`/`--effort` theo **Cấu hình Codex** ở trên.
 - YÊU CẦU ĐỊNH DẠNG OUTPUT (tiết kiệm token): "Kết thúc bằng bảng NGẮN: file đã sửa / phần fail (nếu có) / compile status. KHÔNG dán lại toàn bộ diff hay nội dung file."
-- Codex làm phần code C#/logic (+ Unity qua MCP nếu được). Phần Unity nào Codex fail → Claude làm bù qua UnityMCP (đọc nặng vẫn qua subagent).
+- Codex làm phần code C#/logic (+ Unity qua MCP nếu được). Khi thực thi lỗi, không gọi được MCP, báo không làm được hoặc bỏ sót → KHÔNG chuyển ngay cho Claude: cho Codex **tối đa 5 lượt retry sau lần thực thi đầu tiên** (tối đa 6 lượt tổng cộng cho phần việc bị lỗi), thành công thì dừng ngay.
+- Claude theo dõi số lượt retry cho từng phần việc còn lỗi. Mỗi lượt gọi lại `codex:codex-rescue` với **--write**, kèm `--model`/`--effort` theo **Cấu hình Codex**, plan đã duyệt, phần còn lỗi, lỗi/bằng chứng verify gần nhất và những cách đã thử. Nêu `Retry n/5` trong prompt và cập nhật ngắn cho user.
+- Kèm quy tắc retry trong prompt thực thi: Codex đọc trạng thái hiện tại, tìm nguyên nhân và điều chỉnh cách sửa; chỉ làm tiếp phần chưa đạt, giữ phần đã thành công, không lặp mù quáng thao tác có tác dụng phụ. Trả về ngắn: đã thử gì / kết quả / lỗi còn lại. Claude quản lý 5 lượt retry, không tạo thêm vòng retry lồng nhau.
+- Chỉ khi hết 5 lượt retry mà vẫn lỗi, Claude mới làm bù ĐÚNG phần đó (code hoặc UnityMCP; đọc nặng vẫn qua subagent), dựa trên kết quả và lỗi cuối cùng. Không dùng retry để vượt quyền hoặc bỏ qua yêu cầu duyệt.
 
 ## 4. Verify tối thiểu & báo cáo gọn
 - Kiểm compile (`read_console` = 0 lỗi). Phần đọc Unity nặng → **subagent (`model: "haiku"`)** trả gọn `pass/fail + bằng chứng`. Nếu task đụng hành vi rõ ràng và rẻ để kiểm thì kiểm nhanh; không thì nêu rõ phần user nên tự test.
+- Nếu verify phát hiện phần Codex làm còn lỗi → quay lại bước 3 với số lượt retry còn lại của phần việc đó, KHÔNG reset bộ đếm; verify lại sau khi sửa.
 - Báo cáo ngắn: đã làm gì, ai làm (Codex/Claude), compile ok chưa.
 
 ## Khi nào KHÔNG dùng /pcq

@@ -3,7 +3,7 @@ description: Lên plan → Codex review → Codex thực thi (kể cả Unity qu
 argument-hint: "<mô tả task cần làm>"
 ---
 
-Xử lý task sau theo quy trình "plan → Codex review plan → Claude chỉnh → duyệt → Codex thực thi → Claude lo Unity → verify".
+Xử lý task sau theo quy trình "plan → Codex review plan → Claude chỉnh → duyệt → Codex thực thi + retry → Claude fallback nếu vẫn lỗi → verify".
 
 Task của user:
 $ARGUMENTS
@@ -49,12 +49,16 @@ Thực hiện TUẦN TỰ các bước, KHÔNG được bỏ bước:
 - Codex thực thi CẢ phần code C#/logic LẪN phần Unity (prefab/scene/material, kiểm compile) **bằng chính unityMCP của Codex** — Codex CLI đã cấu hình `unityMCP` (endpoint `127.0.0.1:8080` sống). Nêu RÕ trong prompt: dùng unityMCP để thao tác Unity, và **liệt kê ở CUỐI phần nào KHÔNG hoàn tất được** (đặc biệt nếu không gọi được MCP).
 - YÊU CẦU ĐỊNH DẠNG OUTPUT (tiết kiệm token): "Kết thúc bằng bảng NGẮN: file đã sửa / phần fail (nếu có) / compile status. KHÔNG dán lại toàn bộ diff hay nội dung file."
 
-## 6. Fallback Claude (CHỈ khi Codex fail)
-- Đọc kết quả Codex. Phần nào Codex **fail** — không gọi được unityMCP / báo không làm được / lỗi / bỏ trống — thì Claude làm bù ĐÚNG phần đó qua UnityMCP.
+## 6. Codex retry trước khi fallback Claude
+- Khi Codex thực thi **fail** — không gọi được unityMCP / báo không làm được / lỗi / bỏ trống — KHÔNG chuyển ngay cho Claude. Cho Codex **tối đa 5 lượt retry sau lần thực thi đầu tiên** (tối đa 6 lượt tổng cộng cho phần việc bị lỗi); thành công thì dừng retry ngay.
+- Claude theo dõi số lượt retry cho từng phần việc còn lỗi. Mỗi lượt gọi lại `codex:codex-rescue` với **--write**, kèm `--model`/`--effort` theo **Cấu hình Codex**, plan đã duyệt, phần còn lỗi, thông báo lỗi/bằng chứng verify gần nhất và những cách đã thử. Nêu rõ `Retry n/5` trong prompt và cập nhật ngắn cho user.
+- Kèm quy tắc này trong prompt thực thi ở bước 5: Codex đọc trạng thái hiện tại, tìm nguyên nhân và điều chỉnh cách sửa; chỉ làm tiếp phần chưa đạt, giữ phần đã thành công, không lặp mù quáng thao tác có tác dụng phụ. Trả về ngắn: đã thử gì / kết quả / lỗi còn lại. Claude quản lý 5 lượt retry, không tạo thêm vòng retry lồng nhau.
+- Chỉ sau khi hết 5 lượt retry mà phần việc vẫn lỗi, Claude mới làm bù ĐÚNG phần đó (code hoặc UnityMCP), dựa trên kết quả và lỗi cuối cùng của Codex. Không dùng retry để vượt quyền hoặc bỏ qua yêu cầu duyệt.
 - Nếu Codex đã hoàn tất hết → Claude KHÔNG làm lại, sang thẳng bước verify.
 
 ## 7. Claude verify độc lập & báo cáo
 - Claude LUÔN tự verify bất kể ai thực thi: kiểm compile (`read_console` = 0 lỗi), wiring, test hành vi (Play mode qua UnityMCP nếu khả thi). Phần đọc Unity nặng → qua **subagent (`model: "haiku"`)** trả về gọn `pass/fail + bằng chứng` (Nguyên tắc token).
+- Nếu verify phát hiện phần Codex làm còn lỗi → quay lại bước 6 với số lượt retry còn lại của phần việc đó, KHÔNG reset bộ đếm; verify lại sau khi sửa.
 - Báo cáo TRUNG THỰC: phần nào **Codex** làm, phần nào **Claude fallback**, đã verify gì (kèm bằng chứng), phần nào user cần tự test.
 
 ## Nhánh khác

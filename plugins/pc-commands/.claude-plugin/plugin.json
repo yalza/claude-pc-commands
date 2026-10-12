@@ -1,6 +1,6 @@
 {
   "name": "pc-commands",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "/pc, /pcq and /pcset slash commands: Claude plans + orchestrates + verifies, Codex executes the heavy code work.",
   "author": {
     "name": "yalza"
