@@ -1,9 +1,9 @@
 ---
-description: Menu chọn model + effort cho Codex (dùng bởi /pc và /pcq). Lưu bền vững, áp dụng cả phiên sau.
+description: Menu chọn model + effort cho Codex (dùng bởi /pc, /pcq và /pcdesgin). Lưu bền vững, áp dụng cả phiên sau.
 argument-hint: "[để trống = menu] | <model> <effort> | show | reset"
 ---
 
-Quản lý cấu hình Codex dùng chung cho `/pc` và `/pcq`.
+Quản lý cấu hình Codex dùng chung cho `/pc`, `/pcq` và `/pcdesgin`.
 
 Tham số user:
 $ARGUMENTS

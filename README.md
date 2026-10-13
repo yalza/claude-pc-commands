@@ -1,10 +1,11 @@
-# pc-tools — marketplace for the `/pc` + `/pcq` + `/pcset` commands
+# pc-tools — marketplace for the `/pc` + `/pcq` + `/pcdesgin` + `/pcset` commands
 
 A Claude Code marketplace hosting the **`pc-commands`** plugin: slash commands that let Claude team up with **Codex** (OpenAI). Claude plans, orchestrates, and verifies; Codex does the heavy code work (on your OpenAI quota).
 
 - **`/pc <task>`** — full flow: plan → Codex cross-reviews the plan → approve → Codex executes → Claude verifies + fills in whatever Codex can't do. For larger / riskier tasks.
 - **`/pcq <task>`** — quick flow: short plan → fast approval → hand to Codex (no cross-review) → minimal verify. For light tasks.
-- **`/pcset [model] [effort]`** — set the model + reasoning effort that `/pc` and `/pcq` hand to Codex. Persists across sessions.
+- **`/pcdesgin [UI request or demo]`** — use the demo from `/desgin` (or an explicit reference): Codex implements → Claude visually reviews → Codex fixes until the UI matches. No default five-retry cap; real access/tool/quota blockers pause with saved progress.
+- **`/pcset [model] [effort]`** — set the model + reasoning effort that `/pc`, `/pcq`, and `/pcdesgin` hand to Codex. Persists across sessions.
 
 The marketplace also lists **`task-grid`**: `/grid 2x3` opens parallel tasks in one Windows Terminal window, split as a grid of any size, each in its own git worktree running `claude`. See [task-grid](#task-grid) below.
 
@@ -13,7 +14,7 @@ The marketplace also lists **`task-grid`**: `/grid 2x3` opens parallel tasks in 
 .claude-plugin/marketplace.json              ← marketplace manifest
 plugins/pc-commands/
 ├── .claude-plugin/plugin.json               ← plugin manifest
-└── commands/{pc.md, pcq.md, pcset.md}       ← the slash commands
+└── commands/{pc.md, pcq.md, pcdesgin.md, pcset.md}       ← the slash commands
 ```
 
 ---
@@ -42,11 +43,11 @@ In Claude Code:
 /plugin install pc-commands@pc-tools
 /reload-plugins
 ```
-Type `/pc` or `/pcq` to confirm they loaded.
+Type `/pc`, `/pcq`, or `/pcdesgin` to confirm they loaded.
 
 ## Step 3 — Dependencies (REQUIRED — not pulled in automatically)
 
-Both commands call out to Codex, so that machine needs:
+The execution commands call out to Codex, so that machine needs:
 ```bash
 # Node.js must be installed, then:
 npm install -g @openai/codex
@@ -63,7 +64,7 @@ And the **Codex plugin** (provides the `codex:codex-rescue` subagent):
 
 ## Codex model + effort (`/pcset`)
 
-`/pc` and `/pcq` read `~/.claude/pc-codex.json` before every Codex handoff and forward `--model` / `--effort` to `codex:codex-rescue`. Missing file or missing field → that flag is skipped and Codex falls back to its own default.
+`/pc`, `/pcq`, and `/pcdesgin` read `~/.claude/pc-codex.json` before every Codex handoff and forward `--model` / `--effort` to `codex:codex-rescue`. Missing file or missing field → that flag is skipped and Codex falls back to its own default.
 
 ```bash
 /pcset                      # interactive menu: pick model, then effort
@@ -83,8 +84,25 @@ Config shape (`~/.claude/pc-codex.json`, on Windows `%USERPROFILE%\.claude\pc-co
 - **`model`** is *not* validated: any string is accepted and a typo only surfaces when Codex actually runs.
 - The menu offers `gpt-5.6-sol`, `gpt-5.4-mini`, `spark` and "Codex default"; pick **Other** to type any other model.
 
+## Match a UI demo (`/pcdesgin`)
+
+After `/desgin` produces a demo in the current conversation, run:
+
+```text
+/pcdesgin
+/pcdesgin Build the settings screen to match D:\designs\settings.png
+```
+
+The spelling `pcdesgin` is intentional. This command consumes an existing demo; it does not install or invoke `/desgin`. You can also supply a reference directly. Claude records the reference and acceptance criteria, delegates implementation to Codex, then opens the actual UI and compares layout, spacing, fonts, colors, assets, responsive states, and required interactions. Each mismatch goes back to Codex with fresh evidence until all criteria pass. Calling the command authorizes this implementation loop without a new approval each round.
+
+Claude first prepares a measured UI spec, and Codex confirms its understanding and reference access in a read-only handoff. Implementation proceeds through layout, fonts/assets/colors, fine details, then interactions and responsive states, with visual reviews between stages. Feedback uses stable issue IDs, measured differences, and side-by-side or overlay evidence where available. Passed regions are checked for regressions; an issue that makes no progress for two consecutive fix rounds requires a new diagnosis and approach.
+
+The roles explicitly prioritize matching the reference image. Inspect original-resolution images and prefer native asset display sizes, preserving aspect ratio. Record source and display dimensions, DPR/zoom or Canvas scale, and @2x/@3x density; follow the demo when it requires scaling or cropping. Do not resize screenshots to hide mismatches or use the demo screenshot as the implemented UI.
+
+It shares `/pcset` configuration and saves progress under `~/.claude/pc-handoffs/` with workflow `pcdesgin`. It requires a way to render and inspect the target UI. Missing references, tools, access, or quota are reported as blockers, never as a successful visual match. Unlike `/pc` and `/pcq`, it has no default five-retry limit and does not automatically fall back to Claude writing the UI.
+
 ## Updating later
-Current version: **0.3.2**.
+Current version: **0.4.1**.
 
 Edit a command → bump `version` in **all three fields** → `git push`. On other machines run `/plugin marketplace update pc-tools` (then `/reload-plugins`) to pull the new version.
 
