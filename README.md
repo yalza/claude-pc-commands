@@ -4,7 +4,7 @@ A Claude Code marketplace hosting the **`pc-commands`** plugin: slash commands t
 
 - **`/pc <task>`** — full flow: plan → Codex cross-reviews the plan → approve → Codex executes → Claude verifies + fills in whatever Codex can't do. For larger / riskier tasks.
 - **`/pcq <task>`** — quick flow: short plan → fast approval → hand to Codex (no cross-review) → minimal verify. For light tasks.
-- **`/pcdesgin [UI request or demo]`** — use the demo from `/desgin` (or an explicit reference): Codex implements → Claude visually reviews → Codex fixes until the UI matches. No default five-retry cap; real access/tool/quota blockers pause with saved progress.
+- **`/pcdesgin [UI request or demo]`** — use the demo from `/desgin` (or an explicit reference): Codex implements → Claude visually reviews → Codex fixes until the UI matches. No default ten-retry cap; real access/tool/quota blockers pause with saved progress.
 - **`/pcset [model] [effort]`** — set the model + reasoning effort that `/pc`, `/pcq`, and `/pcdesgin` hand to Codex. Persists across sessions.
 
 The marketplace also lists **`task-grid`**: `/grid 2x3` opens parallel tasks in one Windows Terminal window, split as a grid of any size, each in its own git worktree running `claude`. See [task-grid](#task-grid) below.
@@ -99,10 +99,28 @@ Claude first prepares a measured UI spec, and Codex confirms its understanding a
 
 The roles explicitly prioritize matching the reference image. Inspect original-resolution images and prefer native asset display sizes, preserving aspect ratio. Record source and display dimensions, DPR/zoom or Canvas scale, and @2x/@3x density; follow the demo when it requires scaling or cropping. Do not resize screenshots to hide mismatches or use the demo screenshot as the implemented UI.
 
-It shares `/pcset` configuration and saves progress under `~/.claude/pc-handoffs/` with workflow `pcdesgin`. It requires a way to render and inspect the target UI. Missing references, tools, access, or quota are reported as blockers, never as a successful visual match. Unlike `/pc` and `/pcq`, it has no default five-retry limit and does not automatically fall back to Claude writing the UI.
+It shares `/pcset` configuration and saves progress under `~/.claude/pc-handoffs/` with workflow `pcdesgin`. It requires a way to render and inspect the target UI. Missing references, tools, access, or quota are reported as blockers, never as a successful visual match. Unlike `/pc` and `/pcq`, it has no default ten-retry limit and does not automatically fall back to Claude writing the UI.
+
+## Faster Claude → Codex handoffs
+
+Commands now pass a compact code map, reusable symbols, exact verification commands, and focused error evidence; related work is bundled into one execution handoff. Codex avoids repeating broad discovery without new evidence. Existing approval and independent verification steps remain.
+
+For retries and follow-ups, use `--resume` only after checking that the installed wrapper supports it and its last session belongs to this task and workspace, with no intervening task. The installed wrapper maps it to `--resume-last`; otherwise use `--fresh` with a self-contained handoff. Record timings to measure results; these prompt changes have not been benchmarked.
+
+For small tasks, `/pcq` already skips the cross-review round. You can choose `/pcset medium` or `/pcset low` when appropriate for the selected model and task; commands never change your model or effort automatically. See OpenAI's [best practices](https://developers.openai.com/codex/learn/best-practices) and [speed guidance](https://developers.openai.com/codex/speed).
+
+The 10-retry limit applies to `/pc` and `/pcq`: initial attempt + at most 10 retries per failed item, including verification failures. Old records retain their used count when the limit rises to 10. A resolved item stops immediately; unavailable permissions/quota or an executor whose termination cannot be confirmed pauses the workflow without burning retries. `/pcdesgin` retains its visual convergence loop.
+
+### Job lifecycle and recovery
+
+Claude now checks runtime capabilities once per task, distinguishes Agent task IDs from runtime job IDs and Codex thread IDs, and tracks queued/running work until completion. Empty output or a timeout triggers status/result recovery before any retry. The rescue agent remains a thin forwarder; Claude performs monitoring through the installed runtime's verified interface. Resume candidates must match the task record.
+
+Repeated errors are classified and tracked: after two attempts without progress on the same error, the next attempt must change the diagnosis or approach. External blockers pause with a clear recovery condition. Monitoring does not consume the 10-retry budget. Results include changed files, checks, remaining work and the next action; timings are recorded only when available.
+
+These are Claude command instructions, not an independently enforced job scheduler. Live Claude → Codex execution and latency have not been benchmarked. No model, effort, approval gate or runtime installation is changed automatically.
 
 ## Updating later
-Current version: **0.4.1**.
+Current version: **0.4.3**.
 
 Edit a command → bump `version` in **all three fields** → `git push`. On other machines run `/plugin marketplace update pc-tools` (then `/reload-plugins`) to pull the new version.
 
@@ -185,9 +203,9 @@ grid 2x3
 
 ## Notes
 - **Unity (optional):** the Unity/verify steps use UnityMCP; on non-Unity projects those parts are simply skipped.
-- In both `/pc` and `/pcq`, failed execution gets up to **5 Codex retries after the initial attempt** (6 attempts total per failed work item). Each retry includes the latest error and prior approaches, preserves completed work, and stops on success. Verification failures use the same remaining retry budget. Claude takes over only the work still failing after all 5 retries.
+- In both `/pc` and `/pcq`, failed execution gets up to **10 Codex retries after the initial attempt** (11 attempts total per failed work item). Each retry includes the latest error and prior approaches, preserves completed work, and stops on success. Verification failures use the same remaining retry budget. Claude takes over only the work still failing after all 10 retries.
 - Both commands use structured handoffs (scope, workspace, acceptance criteria), per-item results with verification evidence, and a Claude-maintained task record at `~/.claude/pc-handoffs/<task_id>.json`. Retry counts survive session changes and switching from `/pcq` to `/pc`.
-- Only one executor may write at a time. A timeout requires confirming the previous run has stopped before retry or fallback. Codex checks its own Unity connection and project before editing; denied or unavailable tools are reported explicitly. Unresolved work falls back to Claude only after all 5 retries; permissions are never bypassed.
+- Only one executor may write at a time. A timeout requires confirming the previous run has stopped before retry or fallback. Codex checks its own Unity connection and project before editing; denied or unavailable tools are reported explicitly. Unresolved work falls back to Claude only after all 10 retries; permissions are never bypassed.
 - `/pcq` still keeps **one quick approval gate** before Codex touches any file.
 - Heavy Unity MCP reads (large `get_hierarchy`, component dumps, long console) should be delegated to a subagent that returns a summary, to avoid bloating Claude's context.
 - A public repo means the command contents are world-readable (nothing sensitive here).
