@@ -32,6 +32,10 @@ $ARGUMENTS
 - Tiếp tục phiên cũ thì đọc bản ghi và đối chiếu workspace/trạng thái thực tế; giữ số vòng và sai lệch đang mở. Không áp dụng giới hạn 10 retry hay tự chuyển sang Claude sửa của `/pc` và `/pcq`. Không sửa bộ đếm của task thuộc các workflow đó.
 - Chỉ một executor ghi tại một thời điểm. Claude đợi Codex kết thúc trước khi chạy UI, review hoặc giao sửa tiếp. Timeout không chứng minh đã dừng: kiểm tra đúng session/job, chờ hoặc dừng đúng lượt rồi xác nhận kết thúc. Nếu không xác nhận được, ghi blocked; không chạy chồng hay giết tiến trình không rõ nguồn gốc.
 
+## Hợp đồng hiểu yêu cầu và nghiệm thu
+
+Trước handoff đầu tiên, Claude đọc `../references/handoff-contract.md` tương đối với file command này trong plugin **pc-commands** đang cài, một lần mỗi task. Áp dụng ID task/plan/attempt, tiêu chí có ID, phân biệt giả định và yêu cầu, cách phản biện có bằng chứng và trạng thái executor/reviewer riêng. Đưa nội dung cần thiết vào prompt; không giả định Codex đọc được tài liệu hay lịch sử Claude. Task nhỏ dùng mẫu rút gọn, không thêm vòng xác nhận hiểu. Nếu thiếu tài liệu, báo lỗi đóng gói và giữ tối thiểu các quy tắc này: gắn kết quả đúng task/plan/attempt, đối chiếu từng tiêu chí, chưa verify thì chưa accepted; không tự coi hợp đồng đã được đọc.
+
 ## Giảm thời gian bàn giao và thực thi
 
 - Claude gửi bản đồ code ngắn đã tìm được: file + symbol liên quan, pattern có thể tái dùng, lệnh build/test chính xác và lỗi tái hiện. Codex kiểm chứng phần liên quan rồi sửa; không quét lại toàn repo hoặc lập lại plan đã duyệt nếu không có bằng chứng mới.

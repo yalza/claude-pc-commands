@@ -14,7 +14,8 @@ The marketplace also lists **`task-grid`**: `/grid 2x3` opens parallel tasks in 
 .claude-plugin/marketplace.json              ← marketplace manifest
 plugins/pc-commands/
 ├── .claude-plugin/plugin.json               ← plugin manifest
-└── commands/{pc.md, pcq.md, pcdesgin.md, pcset.md}       ← the slash commands
+├── commands/{pc.md, pcq.md, pcdesgin.md, pcset.md}       ← the slash commands
+└── references/handoff-contract.md          ← shared handoff and acceptance rules
 ```
 
 ---
@@ -119,8 +120,14 @@ Repeated errors are classified and tracked: after two attempts without progress 
 
 These are Claude command instructions, not an independently enforced job scheduler. Live Claude → Codex execution and latency have not been benchmarked. No model, effort, approval gate or runtime installation is changed automatically.
 
+### Shared understanding and acceptance
+
+All three execution commands load the [handoff contract](plugins/pc-commands/references/handoff-contract.md). It ties results to task, plan version and attempt; maps stable acceptance criteria to evidence; separates requirements from assumptions; and defines how agents resolve disagreements without silently changing scope. Codex's execution status is separate from Claude's review acceptance. Results from older plans and tests before later edits must be reconciled before acceptance.
+
+Small tasks use a compact form without an extra acknowledgement call. Missing formatting alone does not trigger another mutation. This remains a prompt-level contract; it has not been validated in a live two-agent run.
+
 ## Updating later
-Current version: **0.4.3**.
+Current version: **0.4.4**.
 
 Edit a command → bump `version` in **all three fields** → `git push`. On other machines run `/plugin marketplace update pc-tools` (then `/reload-plugins`) to pull the new version.
 
