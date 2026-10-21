@@ -34,10 +34,12 @@ Nếu phần task ở trên trống, hãy hỏi user cần làm gì rồi mới 
 
 Trước handoff đầu tiên, Claude đọc `../references/handoff-contract.md` tương đối với file command này trong plugin **pc-commands** đang cài, một lần mỗi task. Áp dụng ID task/plan/attempt, tiêu chí có ID, phân biệt giả định và yêu cầu, cách phản biện có bằng chứng và trạng thái executor/reviewer riêng. Đưa nội dung cần thiết vào prompt; không giả định Codex đọc được tài liệu hay lịch sử Claude. Task nhỏ dùng mẫu rút gọn, không thêm vòng xác nhận hiểu. Nếu thiếu tài liệu, báo lỗi đóng gói và giữ tối thiểu các quy tắc này: gắn kết quả đúng task/plan/attempt, đối chiếu từng tiêu chí, chưa verify thì chưa accepted; không tự coi hợp đồng đã được đọc.
 
+Áp dụng phần **Duyệt và review có trọng tâm** trong hợp đồng: duyệt phạm vi một lần, Codex tự kiểm trước bàn giao, Claude kiểm chứng bằng chứng, gom feedback theo vòng và tách must_fix/suggestion. Suggestion không tự mở vòng sửa.
+
 ## Giảm thời gian bàn giao và thực thi
 
 - Claude gửi bản đồ code ngắn đã tìm được: file + symbol liên quan, pattern có thể tái dùng, lệnh build/test chính xác và lỗi tái hiện. Codex kiểm chứng phần liên quan rồi sửa; không quét lại toàn repo hoặc lập lại plan đã duyệt nếu không có bằng chứng mới.
-- Gom các item liên quan trong cùng phạm vi đã duyệt vào một lượt thực thi; Codex sửa và kiểm tra phù hợp trước khi trả kết quả. Không tách mỗi file thành một lượt Agent. Với UI vẫn giữ các mốc review theo giai đoạn.
+- Gom các item liên quan trong cùng phạm vi đã duyệt vào một lượt thực thi; Codex sửa và kiểm tra phù hợp trước khi trả kết quả. Không tách mỗi file thành một lượt Agent. Với UI giữ các mốc review của chế độ compact/staged đã chọn.
 - Retry hoặc tiếp tục cùng task: ưu tiên `--resume` CHỈ khi runtime đang cài hỗ trợ và xác nhận phiên cuối thuộc đúng task_id + workspace, đã kết thúc, không có task khác chạy xen vào. Wrapper hiện tại ánh xạ flag này thành `--resume-last`, không phải chọn session ID; nếu không chứng minh đúng phiên thì dùng `--fresh` và gói bàn giao tự đủ. Ghi session/job vào bản ghi khi runtime cung cấp; không đoán flag hay ID.
 - Kể cả resume, gửi đủ phạm vi, tiêu chí, trạng thái và ngân sách retry; giữ prompt gọn bằng tóm tắt quyết định, lỗi mới nhất và cách đã thử, không chép toàn hội thoại/log/diff. Resume không reset retry và không bỏ kiểm tra môi trường hay verify độc lập.
 - Dùng tìm kiếm có mục tiêu và batch các lượt đọc độc lập; chỉ chạy kiểm tra phù hợp phần thay đổi rồi kiểm tra bắt buộc của repo. Không chạy lại toàn bộ suite khi không có thay đổi mới hay nghi ngờ chưa giải quyết.
@@ -63,7 +65,7 @@ Thực hiện TUẦN TỰ các bước, KHÔNG được bỏ bước:
 
 ## 2. Codex review plan (READ-ONLY, không sửa file)
 - Gọi subagent `codex:codex-rescue` (Agent tool, `subagent_type: "codex:codex-rescue"`), foreground. Kèm `--model`/`--effort` theo **Cấu hình Codex** ở trên.
-- Prompt cho Codex = toàn văn plan vừa soạn + yêu cầu: **CHỈ REVIEW, KHÔNG SỬA FILE, KHÔNG --write**. Tìm: lỗ hổng logic, edge case bị bỏ sót, giả định sai, rủi ro, thiếu bước verify.
+- Prompt cho Codex = toàn văn plan vừa soạn + yêu cầu: **CHỈ REVIEW, KHÔNG SỬA FILE, KHÔNG --write**. Tập trung vào rủi ro, giả định ảnh hưởng kết quả, edge case quan trọng và khả năng kiểm chứng. Không viết lại plan hoặc đưa gợi ý ngoài phạm vi; phân biệt lỗi bắt buộc sửa với gợi ý.
 - YÊU CẦU ĐỊNH DẠNG (tiết kiệm token): "Trả về CHỈ bullet `[vấn đề] — [mức độ] — [đề xuất]`. KHÔNG lặp lại plan, KHÔNG giải thích dài dòng."
 - Nhận nguyên văn feedback của Codex.
 
@@ -91,7 +93,7 @@ Thực hiện TUẦN TỰ các bước, KHÔNG được bỏ bước:
 - Nếu Codex đã hoàn tất hết → Claude KHÔNG làm lại, sang thẳng bước verify.
 
 ## 7. Claude verify độc lập & báo cáo
-- Claude LUÔN tự verify bất kể ai thực thi: kiểm compile (`read_console` = 0 lỗi), wiring, test hành vi (Play mode qua UnityMCP nếu khả thi). Phần đọc Unity nặng → qua **subagent (`model: "haiku"`)** trả về gọn `pass/fail + bằng chứng` (Nguyên tắc token).
+- Claude LUÔN review độc lập bất kể ai thực thi; dùng bằng chứng test hợp lệ hoặc chạy lại theo hợp đồng: kiểm compile (`read_console` = 0 lỗi), wiring, test hành vi (Play mode qua UnityMCP nếu khả thi). Phần đọc Unity nặng → qua **subagent (`model: "haiku"`)** trả về gọn `pass/fail + bằng chứng` (Nguyên tắc token).
 - Verify theo tiêu chí từng item_id khi Codex đã dừng: với Unity phải xác nhận compile đã hoàn tất trên thay đổi mới nhất trước khi đọc console; console trống khi chưa compile không chứng minh pass. Repo không có Unity dùng build/test phù hợp. Ghi rõ kiểm tra chưa chạy được và cập nhật bản ghi; Claude kiểm tra lại đúng Unity project trước khi verify hoặc fallback bằng MCP của mình.
 - Nếu verify phát hiện phần Codex làm còn lỗi → quay lại bước 6 với số lượt retry còn lại của phần việc đó, KHÔNG reset bộ đếm; verify lại sau khi sửa.
 - Báo cáo TRUNG THỰC: phần nào **Codex** làm, phần nào **Claude fallback**, đã verify gì (kèm bằng chứng), phần nào user cần tự test.

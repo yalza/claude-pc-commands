@@ -36,10 +36,12 @@ $ARGUMENTS
 
 Trước handoff đầu tiên, Claude đọc `../references/handoff-contract.md` tương đối với file command này trong plugin **pc-commands** đang cài, một lần mỗi task. Áp dụng ID task/plan/attempt, tiêu chí có ID, phân biệt giả định và yêu cầu, cách phản biện có bằng chứng và trạng thái executor/reviewer riêng. Đưa nội dung cần thiết vào prompt; không giả định Codex đọc được tài liệu hay lịch sử Claude. Task nhỏ dùng mẫu rút gọn, không thêm vòng xác nhận hiểu. Nếu thiếu tài liệu, báo lỗi đóng gói và giữ tối thiểu các quy tắc này: gắn kết quả đúng task/plan/attempt, đối chiếu từng tiêu chí, chưa verify thì chưa accepted; không tự coi hợp đồng đã được đọc.
 
+Áp dụng phần **Duyệt và review có trọng tâm** trong hợp đồng: duyệt phạm vi một lần, Codex tự kiểm trước bàn giao, Claude kiểm chứng bằng chứng, gom feedback theo vòng và tách must_fix/suggestion. Suggestion không tự mở vòng sửa.
+
 ## Giảm thời gian bàn giao và thực thi
 
 - Claude gửi bản đồ code ngắn đã tìm được: file + symbol liên quan, pattern có thể tái dùng, lệnh build/test chính xác và lỗi tái hiện. Codex kiểm chứng phần liên quan rồi sửa; không quét lại toàn repo hoặc lập lại plan đã duyệt nếu không có bằng chứng mới.
-- Gom các item liên quan trong cùng phạm vi đã duyệt vào một lượt thực thi; Codex sửa và kiểm tra phù hợp trước khi trả kết quả. Không tách mỗi file thành một lượt Agent. Với UI vẫn giữ các mốc review theo giai đoạn.
+- Gom các item liên quan trong cùng phạm vi đã duyệt vào một lượt thực thi; Codex sửa và kiểm tra phù hợp trước khi trả kết quả. Không tách mỗi file thành một lượt Agent. Với UI giữ các mốc review của chế độ compact/staged đã chọn.
 - Retry hoặc tiếp tục cùng task: ưu tiên `--resume` CHỈ khi runtime đang cài hỗ trợ và xác nhận phiên cuối thuộc đúng task_id + workspace, đã kết thúc, không có task khác chạy xen vào. Wrapper hiện tại ánh xạ flag này thành `--resume-last`, không phải chọn session ID; nếu không chứng minh đúng phiên thì dùng `--fresh` và gói bàn giao tự đủ. Ghi session/job vào bản ghi khi runtime cung cấp; không đoán flag hay ID.
 - Kể cả resume, gửi đủ phạm vi, tiêu chí, trạng thái và ngân sách retry; giữ prompt gọn bằng tóm tắt quyết định, lỗi mới nhất và cách đã thử, không chép toàn hội thoại/log/diff. Resume không reset retry và không bỏ kiểm tra môi trường hay verify độc lập.
 - Dùng tìm kiếm có mục tiêu và batch các lượt đọc độc lập; chỉ chạy kiểm tra phù hợp phần thay đổi rồi kiểm tra bắt buộc của repo. Không chạy lại toàn bộ suite khi không có thay đổi mới hay nghi ngờ chưa giải quyết.
@@ -58,15 +60,22 @@ Trước handoff đầu tiên, Claude đọc `../references/handoff-contract.md`
 
 ## 3. Giao Codex dựng hoặc sửa UI
 
-### Xác nhận hiểu trước lượt sửa đầu tiên
+### Chọn chế độ review
+
+- Claude chọn và lưu `review_mode` cùng lý do trước khi giao: `compact` khi UI nhỏ (một màn hình/component), demo/asset và tiêu chí rõ, ít trạng thái, không thay thành phần dùng chung có ảnh hưởng rộng. Còn lại dùng `staged`; không rõ mức rủi ro thì chọn staged.
+- Compact: Codex xác nhận đọc được demo/asset và hiểu spec ngay trong lượt write trước khi sửa, rồi dựng đầy đủ, tự kiểm và trả review; thiếu nguồn hoặc mâu thuẫn quan trọng thì blocked trước phần sửa bị ảnh hưởng. Không thêm một lượt read-only riêng. Claude vẫn xem UI thực tế và kiểm đủ tiêu chí.
+- Staged: dùng lượt xác nhận read-only và bốn giai đoạn bên dưới. Nếu compact phát hiện độ phức tạp/rủi ro lớn hơn, chuyển staged tại mốc executor đã dừng, giữ round, ID và phần đã đạt; không tự thêm cổng duyệt khi phạm vi không đổi.
+
+### Xác nhận hiểu trước lượt sửa đầu tiên (chỉ staged)
 
 - Gọi `codex:codex-rescue` foreground **READ-ONLY, KHÔNG --write**, kèm cấu hình bước 2, vai trò, UI spec và nguồn demo. Yêu cầu không sửa file, trả ngắn: màn hình/trạng thái sẽ dựng, demo và asset thực sự đọc được cùng kích thước gốc, viewport/DPR, component có thể tái dùng, điểm chưa rõ và kế hoạch theo giai đoạn.
 - Claude kiểm tra câu trả lời với demo/spec, bổ sung thông tin hoặc sửa cách hiểu trước khi giao write. Không coi bước này là cổng duyệt thêm cho user. Chỉ hỏi user nếu thiếu quyết định không thể suy ra từ nguồn hiện có; nguồn bắt buộc không truy cập được thì blocked. Lặp xác nhận khi demo/phạm vi thay đổi đáng kể, không bắt làm lại mọi vòng sửa nhỏ.
 
-### Triển khai theo giai đoạn
+### Triển khai theo giai đoạn (staged) hoặc một lượt (compact)
 
-- Giao từng giai đoạn theo thứ tự: **(1) bố cục/kích thước → (2) font, asset, màu → (3) spacing và chi tiết → (4) tương tác và responsive theo yêu cầu**. Không để phần chi tiết che lấp sai bố cục; mỗi giai đoạn phải có UI render được để Claude review ở bước 4 trước khi chuyển tiếp. Nối tương tác tối thiểu sớm nếu cần để mở đúng trạng thái kiểm tra.
-- Ghi `phase` và tiêu chí của giai đoạn trong bàn giao; pass giai đoạn không phải hoàn thành task. Vòng sửa nhắm đúng giai đoạn/lỗi đang mở, giữ các vùng đã đạt; sau giai đoạn cuối vẫn review toàn bộ.
+- Với staged, giao từng giai đoạn theo thứ tự: **(1) bố cục/kích thước → (2) font, asset, màu → (3) spacing và chi tiết → (4) tương tác và responsive theo yêu cầu**. Không để phần chi tiết che lấp sai bố cục; mỗi giai đoạn phải có UI render được để Claude review ở bước 4 trước khi chuyển tiếp. Nối tương tác tối thiểu sớm nếu cần để mở đúng trạng thái kiểm tra.
+- Với compact, đặt `phase: full_ui`, gom bốn phần vào một lượt triển khai rồi review toàn bộ; vòng sửa chỉ nhắm lỗi và regression liên quan.
+- Ghi `review_mode`, `phase` và tiêu chí của giai đoạn trong bàn giao; pass giai đoạn không phải hoàn thành task. Vòng sửa nhắm đúng giai đoạn/lỗi đang mở, giữ các vùng đã đạt; sau giai đoạn cuối vẫn review toàn bộ.
 
 Gọi `codex:codex-rescue` foreground với `--write`, cấu hình ở trên và **gói bàn giao tự đủ ngữ cảnh**:
 
@@ -74,7 +83,7 @@ Gọi `codex:codex-rescue` foreground với `--write`, cấu hình ở trên và
 - Mục tiêu, demo tham chiếu truy cập được trong phiên Codex (đường dẫn tuyệt đối/URL và ảnh nếu tool hỗ trợ), viewport, asset, tiêu chí đối chiếu và các trạng thái cần dựng. Không chỉ nói “xem ảnh ở trên”; xác nhận Codex có thể đọc nguồn, nếu không thì báo blocked và cung cấp nguồn truy cập được.
 - Lệnh chạy/build/test theo repo, cách mở đúng màn hình, dữ liệu/trạng thái để tái hiện; với Unity cần kiểm tra kết nối và đúng project bằng tool read-only trong chính phiên Codex trước khi sửa.
 - Phần đã đạt cần giữ, danh sách sai lệch do Claude review, ảnh hiện tại so với demo, vị trí/kích thước mong muốn, lỗi kiểm tra và cách đã thử. Vòng đầu dùng checklist từ bước 1.
-- Kèm UI spec có số đo, vai trò và quy tắc native size, giai đoạn hiện tại, kết quả xác nhận hiểu, danh sách ID đã pass và sai lệch cần sửa. Không dựa vào trí nhớ của phiên Codex trước.
+- Kèm UI spec có số đo, vai trò và quy tắc native size, giai đoạn hiện tại, kết quả xác nhận hiểu (hoặc yêu cầu tự đối chiếu trước mutation trong lượt compact đầu), danh sách ID đã pass và sai lệch cần sửa. Không dựa vào trí nhớ của phiên Codex trước.
 - Yêu cầu Codex kiểm tra môi trường, thực thi toàn bộ phần sửa trong phạm vi, tái dùng component/asset hiện có, chạy kiểm tra phù hợp, không thay demo hoặc làm yếu tiêu chí để được pass. Codex chỉ thực hiện một lượt bàn giao; Claude quản lý vòng lặp.
 
 Yêu cầu trả ngắn: `status` = `ready_for_review` / `partial` / `failed` / `blocked`, file/asset đã sửa, kiểm tra thực sự đã chạy và kết quả, đường dẫn ảnh UI nếu chụp được, sai lệch còn biết, lỗi/điều kiện chặn và hướng sửa tiếp. Codex tự báo xong chưa phải kết luận UI khớp.
@@ -94,7 +103,7 @@ Yêu cầu trả ngắn: `status` = `ready_for_review` / `partial` / `failed` / 
 - **Không có số vòng tối đa mặc định. Không dừng chỉ vì đã sửa 5 lần, không tự nhận “gần giống là đủ”, không chuyển sang Claude tự code.** Tiếp tục đến khi Claude xác minh tất cả tiêu chí khớp demo và kiểm tra liên quan pass, hoặc user yêu cầu dừng/đổi phạm vi.
 - Mỗi vòng phải chẩn đoán và điều chỉnh dựa trên kết quả, không gửi lại cùng yêu cầu mơ hồ. Khi sai lệch lặp lại không tiến triển, yêu cầu Codex tìm nguyên nhân (font/asset thiếu, CSS constraint, scale, render pipeline...) và thử cách xử lý có căn cứ. Không hạ chuẩn để thoát vòng lặp.
 - Theo dõi danh sách vùng đã pass và số vòng không tiến triển cho từng ID. Nếu cùng lỗi không cải thiện sau **2 vòng sửa liên tiếp**, lượt kế tiếp bắt buộc Codex trả chẩn đoán nguyên nhân, bằng chứng và cách xử lý khác trước khi áp dụng sửa; không lặp lại cách đã thất bại. Đây là mốc đổi cách xử lý, không phải giới hạn số vòng. Sau mọi lượt sửa, kiểm regression các vùng liên quan; nếu hỏng lại thì mở lại đúng ID.
-- Lưu UI spec, nguồn/kích thước asset, phase, kết quả xác nhận hiểu, ID pass/fail, số vòng không tiến triển và bằng chứng mới nhất vào bản ghi bước 2 để tiếp tục nhất quán qua các phiên.
+- Lưu UI spec, nguồn/kích thước asset, review_mode, phase, kết quả xác nhận hiểu, ID pass/fail, số vòng không tiến triển và bằng chứng mới nhất vào bản ghi bước 2 để tiếp tục nhất quán qua các phiên.
 - Khi bị chặn thực sự bởi quyền/quota, công cụ không khả dụng, thiếu asset/demo, hoặc không xác nhận executor đã dừng: lưu trạng thái và báo điều kiện cần khôi phục, không gọi dồn vô ích hoặc vượt quyền. Đây là tạm chặn, không phải hoàn thành; khi điều kiện được khôi phục tiếp tục từ bản ghi. Tôn trọng giới hạn thời gian/chi phí nếu user đã đặt.
 - Cập nhật ngắn cho user sau mỗi vòng: vùng đã đạt, sai lệch còn lại và việc Codex sẽ sửa tiếp.
 

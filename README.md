@@ -96,7 +96,7 @@ After `/desgin` produces a demo in the current conversation, run:
 
 The spelling `pcdesgin` is intentional. This command consumes an existing demo; it does not install or invoke `/desgin`. You can also supply a reference directly. Claude records the reference and acceptance criteria, delegates implementation to Codex, then opens the actual UI and compares layout, spacing, fonts, colors, assets, responsive states, and required interactions. Each mismatch goes back to Codex with fresh evidence until all criteria pass. Calling the command authorizes this implementation loop without a new approval each round.
 
-Claude first prepares a measured UI spec, and Codex confirms its understanding and reference access in a read-only handoff. Implementation proceeds through layout, fonts/assets/colors, fine details, then interactions and responsive states, with visual reviews between stages. Feedback uses stable issue IDs, measured differences, and side-by-side or overlay evidence where available. Passed regions are checked for regressions; an issue that makes no progress for two consecutive fix rounds requires a new diagnosis and approach.
+Claude first prepares a measured UI spec and selects a review mode. Small, well-defined screens/components use `compact`: Codex checks reference access and understanding inside the first write handoff, builds the complete UI, and submits it for visual review. Larger, uncertain or broadly shared UI changes use `staged`: a read-only confirmation followed by layout, fonts/assets/colors, fine details, then interactions and responsive states, with visual reviews between stages. Feedback uses stable issue IDs, measured differences, and side-by-side or overlay evidence where available. Passed regions are checked for regressions; an issue that makes no progress for two consecutive fix rounds requires a new diagnosis and approach.
 
 The roles explicitly prioritize matching the reference image. Inspect original-resolution images and prefer native asset display sizes, preserving aspect ratio. Record source and display dimensions, DPR/zoom or Canvas scale, and @2x/@3x density; follow the demo when it requires scaling or cropping. Do not resize screenshots to hide mismatches or use the demo screenshot as the implemented UI.
 
@@ -126,8 +126,14 @@ All three execution commands load the [handoff contract](plugins/pc-commands/ref
 
 Small tasks use a compact form without an extra acknowledgement call. Missing formatting alone does not trigger another mutation. This remains a prompt-level contract; it has not been validated in a live two-agent run.
 
+### Focused approval and review
+
+Version 0.4.5 keeps one initial scope approval for `/pc` and `/pcq`; in-scope fixes continue automatically. Codex checks its work before handoff. Claude independently reviews the diff and criteria, reuses verifiable current test evidence where appropriate, and reruns checks when changes, risk or missing evidence require it. Mandatory repository checks and actual UI review remain required.
+
+Each review produces one consolidated issue list, separating `must_fix` from optional `suggestion`. Suggestions do not create fix rounds. After fixes, review covers the reported issues and affected regressions; all required criteria and evidence must pass before acceptance. `/pcdesgin` records `review_mode: compact|staged` and retains its visual acceptance standard in both modes. These workflow changes have only been checked statically, not benchmarked in a live Claude–Codex run.
+
 ## Updating later
-Current version: **0.4.4**.
+Current version: **0.4.5**.
 
 Edit a command → bump `version` in **all three fields** → `git push`. On other machines run `/plugin marketplace update pc-tools` (then `/reload-plugins`) to pull the new version.
 
