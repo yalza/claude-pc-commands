@@ -14,8 +14,8 @@ The marketplace also lists **`task-grid`**: `/grid 2x3` opens parallel tasks in 
 .claude-plugin/marketplace.json              ← marketplace manifest
 plugins/pc-commands/
 ├── .claude-plugin/plugin.json               ← plugin manifest
-├── commands/{pc.md, pcq.md, pcdesgin.md, pcset.md}       ← the slash commands
-└── references/handoff-contract.md          ← shared handoff and acceptance rules
+├── commands/{pc.md, pcq.md, pcdesgin.md, pcset.md, pcstatus.md}       ← the slash commands
+└── references/{handoff-contract.md, live-progress.md} ← shared handoff and progress rules
 ```
 
 ---
@@ -108,6 +108,10 @@ Commands now pass a compact code map, reusable symbols, exact verification comma
 
 For retries and follow-ups, use `--resume` only after checking that the installed wrapper supports it and its last session belongs to this task and workspace, with no intervening task. The installed wrapper maps it to `--resume-last`; otherwise use `--fresh` with a self-contained handoff. Record timings to measure results; these prompt changes have not been benchmarked.
 
+Version 0.4.6 also limits discovery to the information needed for a useful handoff, requests implementation plus self-checks in the same execution, reuses task-local findings after checking relevant changes, and avoids polling both Agent and runtime continuously. Completion notifications should be handled immediately rather than waiting for the next heartbeat. Required review gates and UI review stages remain intact.
+
+Claude records observed phase durations and handoff/retry counts to identify the bottleneck. User approval time is separate from dispatch-to-result time; queue time and model execution are unknown unless the runtime reports them. Reports must not present dispatch duration as model thinking time. Every write handoff also forwards a compact execution directive to Codex itself: start from the supplied code map, implement and self-check within the authorized scope, and return once criteria are met instead of replanning or adding optional polish. Read-only reviews never receive write instructions. These are prompt-level optimizations, not measured performance gains.
+
 For small tasks, `/pcq` already skips the cross-review round. You can choose `/pcset medium` or `/pcset low` when appropriate for the selected model and task; commands never change your model or effort automatically. See OpenAI's [best practices](https://developers.openai.com/codex/learn/best-practices) and [speed guidance](https://developers.openai.com/codex/speed).
 
 The 10-retry limit applies to `/pc` and `/pcq`: initial attempt + at most 10 retries per failed item, including verification failures. Old records retain their used count when the limit rises to 10. A resolved item stops immediately; unavailable permissions/quota or an executor whose termination cannot be confirmed pauses the workflow without burning retries. `/pcdesgin` retains its visual convergence loop.
@@ -119,6 +123,14 @@ Claude now checks runtime capabilities once per task, distinguishes Agent task I
 Repeated errors are classified and tracked: after two attempts without progress on the same error, the next attempt must change the diagnosis or approach. External blockers pause with a clear recovery condition. Monitoring does not consume the 10-retry budget. Results include changed files, checks, remaining work and the next action; timings are recorded only when available.
 
 These are Claude command instructions, not an independently enforced job scheduler. Live Claude → Codex execution and latency have not been benchmarked. No model, effort, approval gate or runtime installation is changed automatically.
+
+### Visible progress (0.4.6)
+
+`/pc`, `/pcq`, and `/pcdesgin` automatically show status throughout planning, Codex execution, retries, and Claude verification; no `/pcstatus` invocation is needed. They use background execution when supported and instruct Claude to post a visible chat update approximately every 30 seconds, even when nothing changes: elapsed time since dispatch, observed job state, latest available activity, and next step. Wait calls are bounded to 30 seconds when supported. If the runtime only reports `running`, Claude explicitly says that detailed activity is unavailable; it does not invent percentages or an ETA.
+
+Updates pause while waiting for user approval/input or after reporting a blocked workflow and ending the turn. Use `/pcstatus [task_id]` for an additional read-only status snapshot on demand. It uses the current conversation's task or asks you to choose among matching workspace records, and distinguishes a fresh runtime observation from an older saved snapshot. Older handoff records without progress fields remain readable. You can also ask “đang tới đâu?” or request a stop in the coordinating conversation; stopping requires a supported cancel interface and confirmed executor termination.
+
+These are command instructions, not a live event-stream implementation or a Claude UI modification. Foreground-only runtimes may block updates and input until the tool returns; Claude must disclose that before dispatch. This change does not reduce Codex compute time and has not yet been validated in a live Claude–Codex run.
 
 ### Shared understanding and acceptance
 
@@ -133,7 +145,7 @@ Version 0.4.5 keeps one initial scope approval for `/pc` and `/pcq`; in-scope fi
 Each review produces one consolidated issue list, separating `must_fix` from optional `suggestion`. Suggestions do not create fix rounds. After fixes, review covers the reported issues and affected regressions; all required criteria and evidence must pass before acceptance. `/pcdesgin` records `review_mode: compact|staged` and retains its visual acceptance standard in both modes. These workflow changes have only been checked statically, not benchmarked in a live Claude–Codex run.
 
 ## Updating later
-Current version: **0.4.5**.
+Current version: **0.4.6**.
 
 Edit a command → bump `version` in **all three fields** → `git push`. On other machines run `/plugin marketplace update pc-tools` (then `/reload-plugins`) to pull the new version.
 

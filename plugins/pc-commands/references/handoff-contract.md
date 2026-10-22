@@ -35,6 +35,14 @@ Feedback sửa lỗi phải có `criterion_id`, bước tái hiện, expected, a
 - **Phân biệt bắt buộc và tùy chọn:** must_fix là tiêu chí chưa đạt, regression do thay đổi hoặc lỗi đúng đắn/an toàn có bằng chứng trong phần sửa. Suggestion là sở thích hoặc cải tiến ngoài tiêu chí, không chặn accepted, không tự mở vòng sửa hay mở rộng phạm vi. Rủi ro nghiêm trọng mới phát hiện ngoài phạm vi phải báo để quyết định, không giấu dưới nhãn suggestion. Không hạ mức sai lệch UI so với spec thành suggestion để bỏ qua.
 - **Điểm dừng rõ ràng:** sau sửa, kiểm lại lỗi đã nêu và regression trong phần bị ảnh hưởng; mở rộng kiểm tra nếu chạm thành phần dùng chung hoặc chưa rõ phạm vi ảnh hưởng. Tất cả tiêu chí bắt buộc đạt, không còn must_fix, bằng chứng còn hợp lệ thì accepted và kết thúc; suggestions chỉ báo riêng, không tự thực hiện. Giữ nguyên ngân sách retry qua các vòng review.
 
+## Chỉ dẫn thực thi phải chuyển đến Codex
+
+Claude đưa khối ngắn sau vào prompt của mỗi lượt **write**, cùng code map và lệnh kiểm thực tế. Không chỉ giữ quy tắc tối ưu trong context Claude; rescue là bộ chuyển tiếp, Codex phải nhận được chúng. Với lượt read-only, chỉ gửi yêu cầu review có trọng tâm, tuyệt đối không gửi chỉ dẫn sửa bên dưới.
+
+> Hoàn tất phần việc được giao trong lượt này: xác nhận workspace và đọc hướng dẫn repo; bắt đầu từ file/symbol đã chỉ ra, kiểm chứng dữ liệu bàn giao rồi triển khai trực tiếp. Chỉ mở rộng khám phá khi có dependency hoặc câu hỏi chưa giải quyết; không lập lại toàn bộ plan. Chọn cách sửa nhỏ nhất đáp ứng đầy đủ tiêu chí, tái dùng pattern hiện có, không refactor hay thêm abstraction ngoài phạm vi. Gom các thay đổi liên quan rồi chạy kiểm tra phù hợp và kiểm tra bắt buộc. Tự xử lý lỗi do thay đổi của mình trong cùng lượt nếu khả thi; không dừng ở lời hứa, plan hoặc yêu cầu “tiếp tục” khi đã đủ quyền. Khi đã đạt tiêu chí và có bằng chứng thì bàn giao ngay, không tiếp tục đánh bóng ngoài yêu cầu. Nếu bị chặn thật sự hoặc không tiến triển sau các cách xử lý có căn cứ, trả phần đã xong, bằng chứng lỗi và điều kiện tiếp tục; không lặp vô hạn. Trả gọn file đã sửa, tiêu chí đạt/chưa đạt, lệnh kiểm + kết quả và việc còn lại; giữ log dài ở artifact nếu có.
+
+Khi retry, thêm lỗi hiện hành và cách đã thất bại vào khối này; giữ phần đã đạt. Không dùng mục tiêu tốc độ để bỏ kiểm tra bắt buộc, giả bằng chứng hoặc vượt giới hạn quyền. Không áp deadline cứng rồi coi công việc chưa đủ là hoàn thành.
+
 ## Mẫu gọn trong prompt/kết quả
 
 Không gửi placeholder. Có thể dùng Markdown thay JSON; không cần thêm lượt chỉ để sửa định dạng nếu thông tin đã đủ để Claude ánh xạ chắc chắn.
