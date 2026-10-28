@@ -5,13 +5,13 @@
   },
   "metadata": {
     "description": "Slash commands /pc, /pcq, /pcdesgin, /pcstatus and /pcset: Claude plans + orchestrates, Codex executes.",
-    "version": "0.4.6"
+    "version": "0.4.7"
   },
   "plugins": [
     {
       "name": "pc-commands",
-      "description": "/pc (plan -> Codex review -> execute -> verify), /pcq (quick: plan -> approve -> Codex -> verify), /pcdesgin (Codex UI -> Claude visual review -> fix until matching demo), /pcset (set Codex model + effort), /pcstatus (view Codex progress).",
-      "version": "0.4.6",
+      "description": "/pc (plan -> Codex review -> execute -> verify), /pcq (quick: plan -> approve -> Codex -> verify), /pcdesgin (Codex UI -> Claude visual review -> fix until matching demo), /pcset (set Codex model + effort), /pcstatus (deprecated; use handoff result).",
+      "version": "0.4.7",
       "author": {
         "name": "yalza"
       },
@@ -30,3 +30,5 @@
     }
   ]
 }
+
+

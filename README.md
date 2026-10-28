@@ -141,7 +141,7 @@ Version 0.4.5 keeps one initial scope approval for `/pc` and `/pcq`; in-scope fi
 Each review produces one consolidated issue list, separating `must_fix` from optional `suggestion`. Suggestions do not create fix rounds. After fixes, review covers the reported issues and affected regressions; all required criteria and evidence must pass before acceptance. `/pcdesgin` records `review_mode: compact|staged` and retains its visual acceptance standard in both modes. These workflow changes have only been checked statically, not benchmarked in a live Claude–Codex run.
 
 ## Updating later
-Current version: **0.4.6**.
+Current version: **0.4.7**.
 
 Edit a command → bump `version` in **all three fields** → `git push`. On other machines run `/plugin marketplace update pc-tools` (then `/reload-plugins`) to pull the new version.
 
@@ -230,3 +230,4 @@ grid 2x3
 - `/pcq` still keeps **one quick approval gate** before Codex touches any file.
 - Heavy Unity MCP reads (large `get_hierarchy`, component dumps, long console) should be delegated to a subagent that returns a summary, to avoid bloating Claude's context.
 - A public repo means the command contents are world-readable (nothing sensitive here).
+
