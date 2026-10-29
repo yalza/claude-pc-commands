@@ -1,6 +1,6 @@
 ---
 description: (pc quick) Claude lên plan ngắn → duyệt nhanh → giao Codex (bỏ review chéo) → verify tối thiểu. Cho task nhẹ.
-argument-hint: "<mô tả task nhẹ cần làm>"
+argument-hint: "[--model <id|default>] [--effort <value|default>] <mô tả task nhẹ cần làm>"
 ---
 
 Bản RÚT GỌN của /pc cho **task nhẹ, ít rủi ro**. Bỏ vòng Codex-review-plan; giữ MỘT cổng duyệt nhanh để đi nhanh mà vẫn kiểm soát.
@@ -8,11 +8,11 @@ Bản RÚT GỌN của /pc cho **task nhẹ, ít rủi ro**. Bỏ vòng Codex-re
 Task của user:
 $ARGUMENTS
 
-Nếu phần task ở trên trống, hãy hỏi user cần làm gì rồi mới bắt đầu.
+Sau khi parse option cấu hình bên dưới, nếu phần mô tả task còn lại trống, hãy hỏi user cần làm gì rồi mới bắt đầu.
 
 **Nguyên tắc token:** đọc/quét Unity qua MCP mà output LỚN (`get_hierarchy`, dump components, `read_console` dài, quét prefab/scene) → giao **subagent** chạy và trả tóm tắt; KHÔNG gọi trực tiếp để tránh nuốt JSON to. Subagent chỉ đọc/tóm tắt/verify → chạy **model rẻ** (`model: "haiku"` khi gọi Agent tool).
 
-**Cấu hình Codex:** trước khi gọi `codex:codex-rescue`, đọc `~/.claude/pc-codex.json` (Windows: `%USERPROFILE%\.claude\pc-codex.json`). Có `model`/`effort` → nối `--model <x>` / `--effort <y>` vào cuối prompt gửi subagent. Không có file / JSON hỏng → bỏ qua, KHÔNG báo lỗi. Nêu 1 dòng cho user biết đang dùng model + effort nào. Đổi cấu hình bằng `/pcset`.
+**Cấu hình Codex:** đọc và áp dụng `../references/codex-settings.md` (tính từ thư mục command) trước khi xử lý task. Resolve option đầu lệnh và cấu hình đã lưu, rồi giữ snapshot cho mọi handoff/retry/tiếp tục. `/pcset` đặt mặc định cho task mới; `--model`/`--effort` chỉ áp dụng task này.
 
 ## Quy tắc bàn giao Claude ↔ Codex (áp cho mọi lượt thực thi và retry)
 

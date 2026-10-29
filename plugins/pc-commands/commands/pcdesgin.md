@@ -1,12 +1,14 @@
 ---
 description: Giao UI từ /desgin cho Codex → Claude so với demo → yêu cầu Codex sửa liên tục đến khi khớp.
-argument-hint: "[yêu cầu UI, đường dẫn/link demo hoặc tiếp tục kết quả /desgin]"
+argument-hint: "[--model <id|default>] [--effort <value|default>] [yêu cầu UI, đường dẫn/link demo hoặc tiếp tục kết quả /desgin]"
 ---
 
 Thực hiện yêu cầu UI sau bằng quy trình **Claude chốt demo → Codex dựng UI → Claude review trực quan → Codex sửa → lặp đến khi khớp demo**.
 
 Yêu cầu bổ sung của user:
 $ARGUMENTS
+
+Trước khi lấy demo, parse cấu hình theo `../references/codex-settings.md`; dùng phần tham số còn lại làm yêu cầu UI.
 
 ## Vai trò bắt buộc: dựng UI khớp ảnh mẫu
 
@@ -27,7 +29,7 @@ $ARGUMENTS
 
 ## 2. Cấu hình và trạng thái bàn giao
 
-- Trước MỌI lần gọi subagent `codex:codex-rescue` bằng Agent tool (`subagent_type: "codex:codex-rescue"`), đọc `~/.claude/pc-codex.json` (Windows: `%USERPROFILE%\.claude\pc-codex.json`). Có `model`/`effort` không rỗng → nối `--model <giá trị>` / `--effort <giá trị>` vào prompt. File thiếu/JSON hỏng/field thiếu → bỏ flag tương ứng. Nêu gọn cấu hình đang dùng; user đổi bằng `/pcset`.
+**Cấu hình Codex:** đọc và áp dụng `../references/codex-settings.md` (tính từ thư mục command) trước khi xử lý task. Resolve option đầu lệnh và cấu hình đã lưu, rồi giữ snapshot cho mọi handoff/retry/tiếp tục. `/pcset` đặt mặc định cho task mới; `--model`/`--effort` chỉ áp dụng task này.
 - Claude tạo và cập nhật `~/.claude/pc-handoffs/<task_id>.json`, ngoài repo, với `workflow: "pcdesgin"`, task_id an toàn và duy nhất, workspace, branch, phạm vi, demo tham chiếu, tiêu chí, round, status, owner, session/job/PID nếu có, trạng thái lượt chạy, các sai lệch còn lại và lịch sử ngắn kèm đường dẫn bằng chứng. Chỉ Claude ghi bản ghi; không lưu secret/log dài. Nếu không lưu được, báo rõ và giữ trạng thái trong hội thoại.
 - Tiếp tục phiên cũ thì đọc bản ghi và đối chiếu workspace/trạng thái thực tế; giữ số vòng và sai lệch đang mở. Không áp dụng giới hạn 10 retry hay tự chuyển sang Claude sửa của `/pc` và `/pcq`. Không sửa bộ đếm của task thuộc các workflow đó.
 - Chỉ một executor ghi tại một thời điểm. Claude đợi Codex kết thúc trước khi chạy UI, review hoặc giao sửa tiếp. Timeout không chứng minh đã dừng: kiểm tra đúng session/job, chờ hoặc dừng đúng lượt rồi xác nhận kết thúc. Nếu không xác nhận được, ghi blocked; không chạy chồng hay giết tiến trình không rõ nguồn gốc.

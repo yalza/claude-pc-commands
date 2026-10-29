@@ -1,81 +1,53 @@
 ---
-description: Menu chọn model + effort cho Codex (dùng bởi /pc, /pcq và /pcdesgin). Lưu bền vững, áp dụng cả phiên sau.
-argument-hint: "[để trống = menu] | <model> <effort> | show | reset"
+description: Chọn model Codex và effort mặc định cho task mới của /pc, /pcq và /pcdesgin. Lưu qua các phiên.
+argument-hint: "[menu] | <model> [effort] | model <id|default> | effort <value|default> | show | reset"
 ---
 
-Quản lý cấu hình Codex dùng chung cho `/pc`, `/pcq` và `/pcdesgin`.
+Quản lý `~/.claude/pc-codex.json` (Windows: `%USERPROFILE%\.claude\pc-codex.json`). Đọc `../references/codex-settings.md` để dùng cùng quy tắc giá trị và handoff.
 
 Tham số user:
 $ARGUMENTS
 
-## File config
-`~/.claude/pc-codex.json` (Windows: `%USERPROFILE%\.claude\pc-codex.json`). Schema:
-```json
-{ "model": "gpt-5.4-mini", "effort": "high" }
+## Menu (không có tham số)
+
+Đọc config trước, hiển thị model/effort đã lưu hoặc `(mặc định Codex)`. Không đoán tên model mặc định từ ví dụ hay khẳng định model nào mạnh/rẻ nhất.
+
+Dùng AskUserQuestion để chọn model:
+- `Giữ model hiện tại`: giữ nguyên field model.
+- `Nhập model khác`: hỏi user nhập ID model chính xác bằng Other/free text trước khi ghi.
+- `Mặc định Codex`: xóa field model.
+
+Cho phép nhập ID trực tiếp qua Other ngay ở câu hỏi model. Câu trả lời rỗng/hủy không phải lựa chọn mặc định, không ghi gì.
+
+Hỏi effort: `Giữ effort hiện tại`, `low`, `medium`, `high`; mô tả Other cho phép `none`, `minimal`, `xhigh`, `default`. Chỉ ghi sau khi cả hai câu trả lời hợp lệ. Không dùng tên lựa chọn menu làm ID model.
+
+## Tham số trực tiếp
+
+Parse toàn bộ trước khi ghi, theo thứ tự:
+1. `show` / `status` đứng riêng: in cấu hình và đường dẫn, không ghi. File thiếu → mặc định Codex. JSON hỏng → báo lỗi, không che giấu.
+2. `reset` / `clear` / `off` đứng riêng: đặt `{}`. Đây cũng là cách user chủ động khôi phục file hỏng.
+3. `model <id|default>`: chỉ thay/xóa model.
+4. `effort <value|default>`: chỉ thay/xóa effort; từ chối giá trị ngoài allowlist.
+5. Một token effort hợp lệ: chỉ đổi effort (tương thích `/pcset low`). Một token `default`: yêu cầu dùng `model default`, `effort default` hoặc `reset` để tránh mơ hồ. Một token khác: model ID; riêng `ultra`/`max` báo effort không được giao diện này hỗ trợ, dùng `model <id>` nếu thật sự là ID.
+6. Hai token: đúng một model và một effort hợp lệ, thứ tự tùy ý. Nếu không đúng, báo cú pháp, không ghi. Nhiều token hơn hoặc trộn lệnh quản lý với giá trị → từ chối, không lấy token cuối ghi đè token trước.
+
+## Ghi cấu hình
+
+- File thiếu → `{}`. JSON hỏng/không phải object → không ghi đè, hướng dẫn `reset` để khôi phục.
+- Merge chỉ field được chọn, giữ field còn lại và field khác. Null/field thiếu nghĩa là default. Chỉ `reset` xóa toàn bộ.
+- Validate model và effort theo reference; xác nhận này chỉ là cú pháp, không kiểm tra quyền truy cập model. Không chạy task thử tốn quota để xác thực.
+- Tạo thư mục nếu thiếu; ghi JSON UTF-8 qua file tạm cùng thư mục rồi thay file đích, tránh cấu hình bị ghi dở. Không báo thành công nếu ghi thất bại.
+- In lại model, effort, đường dẫn và `Áp dụng cho task mới của /pc, /pcq, /pcdesgin`. Task đang chạy giữ snapshot; muốn đổi riêng task, dùng option `--model`/`--effort` khi tạo task hoặc yêu cầu rõ khi tiếp tục.
+
+Ví dụ:
+```text
+/pcset
+/pcset model MODEL_ID
+/pcset MODEL_ID high
+/pcset effort medium
+/pcset model default
+/pcset show
+/pcset reset
 ```
-Field vắng mặt / `null` → bỏ qua flag đó, Codex dùng mặc định của nó.
 
-## Giá trị hợp lệ
-- **effort**: `none` `minimal` `low` `medium` `high` `xhigh` — CHỈ 6 giá trị này (allowlist của `codex-companion.mjs`). Lưu ý: `ultra` trong `~/.codex/config.toml` KHÔNG hợp lệ cho `--effort`, sẽ ném lỗi.
-- **model**: chuỗi bất kỳ, KHÔNG được validate. Alias: `spark` → `gpt-5.3-codex-spark`.
-
----
-
-# Nhánh A — `$ARGUMENTS` RỖNG → hiện MENU
-
-Đọc config hiện tại trước (để đánh dấu giá trị đang dùng). Rồi gọi `AskUserQuestion` **đúng MỘT lần** với 2 câu hỏi:
-
-**Câu 1 — header `Model`:**
-| label | description |
-|---|---|
-| `gpt-5.6-sol` | Mặc định Codex đang set trong config.toml. Mạnh nhất, tốn nhất. |
-| `gpt-5.4-mini` | Nhỏ, nhanh, rẻ. Hợp task nhẹ. |
-| `spark` | `gpt-5.3-codex-spark` — tối ưu tốc độ. |
-| `Dùng mặc định Codex` | Không set `--model`, để Codex tự quyết theo `~/.codex/config.toml`. |
-
-**Câu 2 — header `Effort`:**
-| label | description |
-|---|---|
-| `low` | Suy luận nông, nhanh + rẻ nhất. |
-| `medium` | Cân bằng. |
-| `high` | Suy luận sâu, chậm + tốn hơn. |
-| `xhigh` | Sâu nhất. Chỉ cho task khó. |
-
-Trong description của câu 2, nhắc: chọn `Other` nếu muốn `none`, `minimal`, hoặc gõ `default` để bỏ set effort.
-
-Xử lý câu trả lời:
-- Chọn `Dùng mặc định Codex` (model) → **xoá** field `model` khỏi config.
-- Câu 2 trả về `default` qua Other → **xoá** field `effort`.
-- Other trả về giá trị effort ngoài 6 giá trị hợp lệ → báo lỗi, KHÔNG ghi file.
-- `spark` → chuẩn hoá thành `gpt-5.3-codex-spark` trước khi ghi.
-
-Sau đó ghi config theo **Quy tắc ghi** bên dưới.
-
----
-
-# Nhánh B — `$ARGUMENTS` CÓ giá trị → không hiện menu
-
-Tách thành token, thứ tự tự do:
-
-1. `show` / `status` → đọc & in config hiện tại. Chưa có file → báo "đang dùng mặc định của Codex". KHÔNG ghi gì.
-2. `reset` / `clear` / `off` → ghi `{}` vào file config. Báo đã về mặc định Codex.
-3. Token nằm trong 6 giá trị effort → đó là **effort**.
-4. Token còn lại → đó là **model**. `spark` → `gpt-5.3-codex-spark`.
-
----
-
-## Quy tắc ghi (áp cho cả 2 nhánh)
-
-- **Merge, KHÔNG ghi đè cả file.** Đọc config cũ trước; chỉ cập nhật field user vừa đưa, giữ nguyên field kia. (`/pcset low` khi đang có model → model không đổi.)
-- File chưa tồn tại / JSON hỏng → coi như config rỗng `{}`, KHÔNG báo lỗi, ghi mới bình thường.
-- **Effort sai giá trị** → báo lỗi, liệt kê 6 giá trị hợp lệ, **KHÔNG ghi file**, dừng.
-- **Model** → nhận mọi chuỗi, nhưng **cảnh báo** rằng tên model không được kiểm tra; gõ sai chỉ lộ ra lúc Codex chạy thật.
-- Sau khi ghi, LUÔN in lại config mới để user xác nhận.
-
-## Báo cáo
-Ngắn gọn, ví dụ:
-```
-Đã lưu → model: gpt-5.4-mini | effort: high
-Config: ~/.claude/pc-codex.json
-```
-Field bị xoá thì ghi rõ `(mặc định Codex)` thay vì để trống.
+Không chỉnh `~/.codex/config.toml` hoặc model của Claude. Cấu hình chỉ điều khiển Codex được plugin này gọi.

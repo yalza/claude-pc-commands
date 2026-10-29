@@ -15,7 +15,7 @@ The marketplace also lists **`task-grid`**: `/grid 2x3` opens parallel tasks in 
 plugins/pc-commands/
 ├── .claude-plugin/plugin.json               ← plugin manifest
 ├── commands/{pc.md, pcq.md, pcdesgin.md, pcset.md, pcstatus.md}       ← the slash commands
-└── references/{handoff-contract.md, live-progress.md} ← shared handoff and progress rules
+└── references/{handoff-contract.md, live-progress.md, codex-settings.md} ← shared handoff and progress rules
 ```
 
 ---
@@ -65,25 +65,32 @@ And the **Codex plugin** (provides the `codex:codex-rescue` subagent):
 
 ## Codex model + effort (`/pcset`)
 
-`/pc`, `/pcq`, and `/pcdesgin` read `~/.claude/pc-codex.json` before every Codex handoff and forward `--model` / `--effort` to `codex:codex-rescue`. Missing file or missing field → that flag is skipped and Codex falls back to its own default.
+Use `/pcset` to choose the Codex executor model and reasoning effort for new tasks. Settings persist in `~/.claude/pc-codex.json` (Windows: `%USERPROFILE%\.claude\pc-codex.json`). The menu lets you keep the saved model, enter an exact model ID, or use the Codex default; it does not assume a fixed model catalog or account availability.
 
-```bash
-/pcset                      # interactive menu: pick model, then effort
-/pcset show                 # print current config
-/pcset gpt-5.4-mini high    # set both, no menu
-/pcset low                  # set effort only; model is kept
-/pcset spark                # alias → gpt-5.3-codex-spark
-/pcset reset                # back to Codex defaults
+```text
+/pcset                         # interactive model + effort selection
+/pcset model MODEL_ID           # save your model ID; keep effort
+/pcset MODEL_ID high            # save both
+/pcset effort medium            # change effort only
+/pcset model default            # remove model override; keep effort
+/pcset show                     # show saved settings
+/pcset reset                    # clear settings
 ```
 
-Config shape (`~/.claude/pc-codex.json`, on Windows `%USERPROFILE%\.claude\pc-codex.json`):
-```json
-{ "model": "gpt-5.4-mini", "effort": "high" }
+Choose a model for just one task without changing saved defaults:
+
+```text
+/pc --model MODEL_ID --effort high Implement the feature
+/pcq --model MODEL_ID Fix the login bug
+/pcdesgin --model MODEL_ID Build the UI from the demo
+/pcq --model default --effort default Fix the typo
 ```
 
-- **`effort`** must be one of `none` `minimal` `low` `medium` `high` `xhigh` — `/pcset` rejects anything else. Note that `ultra`, valid in `~/.codex/config.toml`, is **not** a valid `--effort` value.
-- **`model`** is *not* validated: any string is accepted and a typo only surfaces when Codex actually runs.
-- The menu offers `gpt-5.6-sol`, `gpt-5.4-mini`, `spark` and "Codex default"; pick **Other** to type any other model.
+Replace `MODEL_ID` with the exact ID available to your Codex runtime/account. Options must precede the task; `--` ends option parsing. Each field resolves from task option → saved setting → Codex default. An explicit `default` skips the saved field. Every task saves a settings snapshot used for plan review, execution, retries and continuation; changing `/pcset` affects new tasks. To change an existing task, explicitly request the new settings when continuing it.
+
+Config example: `{ "model": "MODEL_ID", "effort": "high" }`. Missing/null fields omit the corresponding flag. Malformed config is reported before dispatch. Model IDs receive syntax checks only; availability is established by the runtime. Unsupported models/efforts block the handoff instead of silently selecting another model.
+
+The plugin effort interface accepts `none`, `minimal`, `low`, `medium`, `high`, `xhigh`; compatibility also depends on the installed wrapper and selected model. The legacy `spark` alias remains supported. These settings configure the Codex executor, not the Claude orchestrator or Codex desktop app. See the shared [settings rules](plugins/pc-commands/references/codex-settings.md).
 
 ## Match a UI demo (`/pcdesgin`)
 
@@ -141,7 +148,7 @@ Version 0.4.5 keeps one initial scope approval for `/pc` and `/pcq`; in-scope fi
 Each review produces one consolidated issue list, separating `must_fix` from optional `suggestion`. Suggestions do not create fix rounds. After fixes, review covers the reported issues and affected regressions; all required criteria and evidence must pass before acceptance. `/pcdesgin` records `review_mode: compact|staged` and retains its visual acceptance standard in both modes. These workflow changes have only been checked statically, not benchmarked in a live Claude–Codex run.
 
 ## Updating later
-Current version: **0.4.7**.
+Current version: **0.4.8**.
 
 Edit a command → bump `version` in **all three fields** → `git push`. On other machines run `/plugin marketplace update pc-tools` (then `/reload-plugins`) to pull the new version.
 

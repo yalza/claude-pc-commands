@@ -1,6 +1,6 @@
 ---
 description: Lên plan → Codex review → Codex thực thi (kể cả Unity qua MCP) → Claude verify + làm bù khi Codex fail
-argument-hint: "<mô tả task cần làm>"
+argument-hint: "[--model <id|default>] [--effort <value|default>] <mô tả task cần làm>"
 ---
 
 Xử lý task sau theo quy trình "plan → Codex review plan → Claude chỉnh → duyệt → Codex thực thi + retry → Claude fallback nếu vẫn lỗi → verify".
@@ -8,17 +8,13 @@ Xử lý task sau theo quy trình "plan → Codex review plan → Claude chỉnh
 Task của user:
 $ARGUMENTS
 
-Nếu phần task ở trên trống, hãy hỏi user cần làm gì rồi mới bắt đầu.
+Sau khi parse option cấu hình bên dưới, nếu phần mô tả task còn lại trống, hãy hỏi user cần làm gì rồi mới bắt đầu.
 
 **Nguyên tắc token (áp cho MỌI bước):** khi cần ĐỌC/QUÉT trạng thái Unity qua MCP mà output LỚN (`get_hierarchy`, dump components, `read_console` dài, quét prefab/scene) → giao một **subagent** (general-purpose/Explore) chạy các tool UnityMCP đó và **chỉ trả về tóm tắt** (id/giá trị/kết luận cần dùng). KHÔNG gọi trực tiếp để tránh nuốt JSON to vào context Claude. Thao tác nhỏ (1–2 giá trị) hoặc mutate lẻ thì gọi trực tiếp cho nhanh.
 
 **Model cho subagent tóm tắt:** các subagent chỉ làm việc đọc/quét/tóm tắt/verify (không cần suy luận sâu) hãy chạy **model rẻ** — gọi Agent tool với `model: "haiku"` — để tiết kiệm chi phí. Chỉ dùng model mặc định khi subagent cần suy luận/quyết định phức tạp.
 
-**Cấu hình Codex (áp cho MỌI lần gọi `codex:codex-rescue`):** trước khi gọi, đọc `~/.claude/pc-codex.json` (Windows: `%USERPROFILE%\.claude\pc-codex.json`).
-- Có `model` → nối `--model <giá trị>` vào cuối prompt gửi subagent. Có `effort` → nối `--effort <giá trị>`.
-- File không tồn tại / JSON hỏng / field rỗng → BỎ QUA, không báo lỗi (Codex dùng mặc định của nó).
-- Nêu 1 dòng cho user biết đang chạy Codex với model + effort nào (hoặc "mặc định Codex").
-- User đổi cấu hình này bằng lệnh `/pcset`.
+**Cấu hình Codex:** đọc và áp dụng `../references/codex-settings.md` (tính từ thư mục command) trước khi xử lý task. Resolve option đầu lệnh và cấu hình đã lưu, rồi giữ snapshot cho mọi handoff/retry/tiếp tục. `/pcset` đặt mặc định cho task mới; `--model`/`--effort` chỉ áp dụng task này.
 
 ## Quy tắc bàn giao Claude ↔ Codex (áp cho mọi lượt thực thi và retry)
 
