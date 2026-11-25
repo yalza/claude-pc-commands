@@ -1,7 +1,7 @@
 {
   "name": "pc-commands",
-  "version": "0.4.8",
-  "description": "/pc, /pcq, /pcdesgin, /pcstatus and /pcset slash commands: Claude plans + orchestrates + verifies, Codex executes the heavy code work.",
+  "version": "0.4.9",
+  "description": "/pc, /pcq, /pcdesgin, /pcstatus and /pcset (/qcset) slash commands: Claude plans + orchestrates + verifies, Codex executes the heavy code work.",
   "author": {
     "name": "yalza"
   }

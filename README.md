@@ -14,7 +14,7 @@ The marketplace also lists **`task-grid`**: `/grid 2x3` opens parallel tasks in 
 .claude-plugin/marketplace.json              ← marketplace manifest
 plugins/pc-commands/
 ├── .claude-plugin/plugin.json               ← plugin manifest
-├── commands/{pc.md, pcq.md, pcdesgin.md, pcset.md, pcstatus.md}       ← the slash commands
+├── commands/{pc.md, pcq.md, pcdesgin.md, pcset.md, qcset.md, pcstatus.md}       ← the slash commands
 └── references/{handoff-contract.md, live-progress.md, codex-settings.md} ← shared handoff and progress rules
 ```
 
@@ -65,11 +65,11 @@ And the **Codex plugin** (provides the `codex:codex-rescue` subagent):
 
 ## Codex model + effort (`/pcset`)
 
-Use `/pcset` to choose the Codex executor model and reasoning effort for new tasks. Settings persist in `~/.claude/pc-codex.json` (Windows: `%USERPROFILE%\.claude\pc-codex.json`). The menu lets you keep the saved model, enter an exact model ID, or use the Codex default; it does not assume a fixed model catalog or account availability.
+Use `/pcset` to choose the Codex executor model and reasoning effort for new tasks. Settings persist in `~/.claude/pc-codex.json` (Windows: `%USERPROFILE%\.claude\pc-codex.json`). Open the same picker with `/qcset`. It reads the local Codex Desktop and CLI model catalogs and shows GPT-6.2 Sol and Astra first when listed. You can browse more models, enter an exact ID, keep the saved choice, or restore the Codex default. Your executor determines access when a task runs.
 
 ```text
 /pcset                         # interactive model + effort selection
-/pcset model MODEL_ID           # save your model ID; keep effort
+/qcset model gpt-6.2-sol        # save GPT-6.2 Sol and keep the current effort
 /pcset MODEL_ID high            # save both
 /pcset effort medium            # change effort only
 /pcset model default            # remove model override; keep effort

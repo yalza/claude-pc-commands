@@ -8,16 +8,15 @@ Quản lý `~/.claude/pc-codex.json` (Windows: `%USERPROFILE%\.claude\pc-codex.j
 Tham số user:
 $ARGUMENTS
 
-## Menu (không có tham số)
+## Menu (không có tham số hoặc một từ `menu`)
 
 Đọc config trước, hiển thị model/effort đã lưu hoặc `(mặc định Codex)`. Không đoán tên model mặc định từ ví dụ hay khẳng định model nào mạnh/rẻ nhất.
 
-Dùng AskUserQuestion để chọn model:
-- `Giữ model hiện tại`: giữ nguyên field model.
-- `Nhập model khác`: hỏi user nhập ID model chính xác bằng Other/free text trước khi ghi.
-- `Mặc định Codex`: xóa field model.
-
-Cho phép nhập ID trực tiếp qua Other ngay ở câu hỏi model. Câu trả lời rỗng/hủy không phải lựa chọn mặc định, không ghi gì.
+Chạy `node "${CLAUDE_PLUGIN_ROOT}/scripts/list-models.cjs"` để lấy mảng ID từ cache cục bộ. Hiển thị bằng AskUserQuestion, tối đa 4 lựa chọn mỗi trang:
+- Trang đầu dành hai nút cho hai ID đầu tiên (ưu tiên `gpt-6.2-sol` và `gpt-6.2-astra` nếu có), một nút `Giữ model hiện tại` và một nút `Thêm lựa chọn`.
+- Trong `Thêm lựa chọn`, phân trang các ID còn lại theo thứ tự danh mục (tối đa hai ID mỗi trang), kèm nút `Mặc định Codex` để xóa model và `Trang sau` nếu còn ID. Nếu hết ID, cho chọn mặc định hoặc quay lại trang đầu.
+- Dùng ID thật làm nhãn nút và giá trị lưu. Other/free text cho nhập ID trực tiếp trên mọi trang. Khi thiếu danh mục hoặc lệnh đọc lỗi, dùng hai ID GPT-6.2 ở trên làm gợi ý, ghi rõ chưa xác minh qua cache. Nếu giao diện thiếu AskUserQuestion, in các lựa chọn và chờ user trả lời.
+- Nút điều hướng chỉ đổi trang. Giữ model hiện tại giữ nguyên field model. Câu trả lời rỗng/hủy không ghi gì.
 
 Hỏi effort: `Giữ effort hiện tại`, `low`, `medium`, `high`; mô tả Other cho phép `none`, `minimal`, `xhigh`, `default`. Chỉ ghi sau khi cả hai câu trả lời hợp lệ. Không dùng tên lựa chọn menu làm ID model.
 
